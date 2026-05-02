@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSCameraUsageDescription</key>
+    <string>Photopedia membutuhkan akses kamera untuk mengambil foto</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Photopedia membutuhkan akses galeri untuk menyimpan dan memilih foto</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Photopedia membutuhkan izin untuk menyimpan foto ke galeri</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Photopedia membutuhkan akses mikrofon untuk fitur kamera</string>
+    <key>CFBundleName</key>
+    <string>Photopedia</string>
+    <key>CFBundleDisplayName</key>
+    <string>Photopedia</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.example.photopedia</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+</dict>
+</plist>
