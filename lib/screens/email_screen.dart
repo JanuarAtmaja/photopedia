@@ -80,6 +80,8 @@ class _EmailScreenState extends State<EmailScreen> {
       );
 
       // ─── Catat ke analitik: foto berhasil dikirim ──────────────────────
+      if (!mounted) return;
+      // Cache state sebelum await agar tidak ada async gap
       final state = AppStateScope.of(context);
       String? photoId;
       if (_attachedPhotoPath != null) {

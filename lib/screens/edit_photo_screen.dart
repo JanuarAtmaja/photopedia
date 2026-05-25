@@ -31,7 +31,6 @@ class OverlayItem {
     this.color = Colors.white,
     this.fontSize = 28,
     this.fontFamily = 'Default',
-    
   });
 
   OverlayItem copyWith({
@@ -217,23 +216,21 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
       await File(outPath).writeAsBytes(resultBytes);
 
       // Update path di AppState
-      if (mounted) {
-        final state = AppStateScope.of(context);
-        // Cari photo lama dan update pathnya
-        final existing = state.photos
-            .where((ph) => ph.path == widget.photoPath)
-            .firstOrNull;
-        if (existing != null) {
-          await state.updatePhotoPath(existing.id, outPath);
-        }
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PreviewScreen(photoPath: outPath),
-          ),
-        );
+      if (!mounted) return;
+      // Cache navigator & state sebelum await agar tidak ada async gap
+      final nav = Navigator.of(context);
+      final state = AppStateScope.of(context);
+      final existing = state.photos
+          .where((ph) => ph.path == widget.photoPath)
+          .firstOrNull;
+      if (existing != null) {
+        await state.updatePhotoPath(existing.id, outPath);
       }
+      nav.pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => PreviewScreen(photoPath: outPath),
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

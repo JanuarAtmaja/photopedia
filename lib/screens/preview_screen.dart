@@ -16,12 +16,12 @@ import 'email_screen.dart';
 
 /// Koordinat satu slot foto dalam bingkai (nilai 0.0–1.0, relatif terhadap
 /// dimensi total bingkai). Dipakai di LayoutBuilder agar responsif.
-class _FrameSlot {
+class FrameSlot {
   final double leftFrac;
   final double topFrac;
   final double widthFrac;
   final double heightFrac;
-  const _FrameSlot(
+  const FrameSlot(
       this.leftFrac, this.topFrac, this.widthFrac, this.heightFrac);
 }
 
@@ -33,7 +33,7 @@ class FrameOption {
   final Color accent;
 
   /// Tiga slot foto yang cocok dengan desain PNG bingkai.
-  final List<_FrameSlot>? slots;
+  final List<FrameSlot>? slots;
 
   const FrameOption({
     required this.id,
@@ -48,21 +48,21 @@ class FrameOption {
 // Nilai dihitung berdasarkan proporsi visual PNG (lebar ~290px, tinggi ~860px)
 
 const _slotsFilmStrip = [
-  _FrameSlot(0.10, 0.05, 0.80, 0.26), // kotak atas
-  _FrameSlot(0.10, 0.34, 0.80, 0.26), // kotak tengah
-  _FrameSlot(0.10, 0.63, 0.80, 0.26), // kotak bawah
+  FrameSlot(0.10, 0.05, 0.80, 0.26), // kotak atas
+  FrameSlot(0.10, 0.34, 0.80, 0.26), // kotak tengah
+  FrameSlot(0.10, 0.63, 0.80, 0.26), // kotak bawah
 ];
 
 const _slotsY2K = [
-  _FrameSlot(0.08, 0.04, 0.84, 0.25),
-  _FrameSlot(0.08, 0.32, 0.84, 0.25),
-  _FrameSlot(0.08, 0.60, 0.84, 0.25),
+  FrameSlot(0.08, 0.04, 0.84, 0.25),
+  FrameSlot(0.08, 0.32, 0.84, 0.25),
+  FrameSlot(0.08, 0.60, 0.84, 0.25),
 ];
 
 const _slotsMusic = [
-  _FrameSlot(0.07, 0.03, 0.86, 0.23),
-  _FrameSlot(0.07, 0.29, 0.86, 0.23),
-  _FrameSlot(0.07, 0.55, 0.86, 0.23),
+  FrameSlot(0.07, 0.03, 0.86, 0.23),
+  FrameSlot(0.07, 0.29, 0.86, 0.23),
+  FrameSlot(0.07, 0.55, 0.86, 0.23),
 ];
 
 /// Daftar semua bingkai yang tersedia — satu source of truth.
@@ -154,15 +154,17 @@ class _PreviewScreenState extends State<PreviewScreen> {
           p.join(dir.path, 'frame_${DateTime.now().millisecondsSinceEpoch}.png');
       await File(outPath).writeAsBytes(bytes);
 
-      if (mounted) {
-        await AppStateScope.of(context).addPhoto(outPath);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Foto tersimpan di galeri ✓'),
-            backgroundColor: Color(0xFF6B4EFF),
-          ),
-        );
-      }
+      if (!mounted) return;
+      // Cache context-dependent objects sebelum await
+      final state = AppStateScope.of(context);
+      final messenger = ScaffoldMessenger.of(context);
+      await state.addPhoto(outPath);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Foto tersimpan di galeri ✓'),
+          backgroundColor: Color(0xFF6B4EFF),
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
