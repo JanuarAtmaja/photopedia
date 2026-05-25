@@ -351,7 +351,7 @@ class _NavButton extends StatelessWidget {
       child: Container(
         width: 44,
         height: 44,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.black54,
           shape: BoxShape.circle,
         ),

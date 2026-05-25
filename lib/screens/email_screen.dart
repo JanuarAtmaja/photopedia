@@ -95,8 +95,9 @@ class _EmailScreenState extends State<EmailScreen> {
     } on EmailServiceException catch (e) {
       if (mounted) _showStatusModal(success: false, errorMessage: e.message);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         _showStatusModal(success: false, errorMessage: 'Terjadi kesalahan: $e');
+      }
     } finally {
       if (mounted) setState(() => _isSending = false);
     }

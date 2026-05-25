@@ -36,7 +36,7 @@ class CameraFilter {
 
 /// Daftar filter — satu definisi, dipakai di kamera & editor.
 final List<CameraFilter> kAppFilters = [
-  CameraFilter(
+  const CameraFilter(
     id: 'none',
     label: 'Asli',
     chipColor: Colors.grey,
@@ -48,7 +48,7 @@ final List<CameraFilter> kAppFilters = [
     ],
     applyToImage: null,
   ),
-  CameraFilter(
+  const CameraFilter(
     id: 'bw',
     label: 'B&W',
     chipColor: Colors.blueGrey,
@@ -60,7 +60,7 @@ final List<CameraFilter> kAppFilters = [
     ],
     applyToImage: _applyBW,
   ),
-  CameraFilter(
+  const CameraFilter(
     id: 'sepia',
     label: 'Sepia',
     chipColor: Colors.brown,
@@ -72,7 +72,7 @@ final List<CameraFilter> kAppFilters = [
     ],
     applyToImage: _applySepia,
   ),
-  CameraFilter(
+  const CameraFilter(
     id: 'invert',
     label: 'Invert',
     chipColor: Colors.teal,
@@ -84,7 +84,7 @@ final List<CameraFilter> kAppFilters = [
     ],
     applyToImage: _applyInvert,
   ),
-  CameraFilter(
+  const CameraFilter(
     id: 'vintage',
     label: 'Vintage',
     chipColor: Colors.orange,

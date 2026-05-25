@@ -51,7 +51,7 @@ class EmailService {
         )
         .timeout(
           const Duration(seconds: 30),
-          onTimeout: () => throw EmailServiceException(
+          onTimeout: () => throw const EmailServiceException(
             'Koneksi timeout. Periksa jaringan kamu.',
           ),
         );

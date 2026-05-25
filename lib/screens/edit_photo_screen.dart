@@ -7,7 +7,6 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../models/photo_state.dart';
-import '../main.dart';
 import 'camera_screen.dart' show kAppFilters, CameraFilter;
 import 'preview_screen.dart';
 
@@ -32,6 +31,7 @@ class OverlayItem {
     this.color = Colors.white,
     this.fontSize = 28,
     this.fontFamily = 'Default',
+    
   });
 
   OverlayItem copyWith({
