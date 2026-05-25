@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/photo_state.dart';
 import '../widgets/photo_grid_item.dart';
 import 'preview_screen.dart';
+import '../main.dart'; // Import main.dart
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,11 +14,9 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Photopedia'),
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu_rounded),
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
+        leading: IconButton(
+          icon: const Icon(Icons.menu_rounded),
+          onPressed: () => MainShell.scaffoldKey.currentState?.openDrawer(),
         ),
       ),
       body: SafeArea(
@@ -26,7 +25,6 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Hero card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
@@ -34,11 +32,7 @@ class HomeScreen extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6B4EFF).withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                    )
+                    BoxShadow(color: const Color(0xFF6B4EFF).withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 4)),
                   ],
                 ),
                 child: Column(
@@ -46,17 +40,17 @@ class HomeScreen extends StatelessWidget {
                     Container(
                       width: 80,
                       height: 80,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEDE9FF),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      decoration: BoxDecoration(color: const Color(0xFFEDE9FF), borderRadius: BorderRadius.circular(16)),
                       child: const Icon(Icons.camera_enhance_rounded, size: 40, color: Color(0xFF6B4EFF)),
                     ),
                     const SizedBox(height: 16),
-                    const Text('PHOTOPEDIA', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF6B4EFF), letterSpacing: 1.2)),
+                    const Text(
+                      'PHOTOPEDIA',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF6B4EFF), letterSpacing: 1.2),
+                    ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Photobooth seru yang bikin momen kamu jadi lebih hidup dan estetik. Lewat halaman Home, kamu bisa langsung akses kamera dan galeri dengan cepat dan praktis.',
+                      'Photobooth seru yang bikin momen kamu jadi lebih hidup dan estetik. Akses kamera dan galeri dengan cepat.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
                     ),
@@ -64,7 +58,7 @@ class HomeScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () {},
+                        onPressed: () => _navigateToTab(context, 1),
                         icon: const Icon(Icons.camera_alt_rounded),
                         label: const Text('Mulai Ambil Foto'),
                       ),
@@ -73,7 +67,7 @@ class HomeScreen extends StatelessWidget {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () => _navigateToTab(context, 2),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Color(0xFF6B4EFF)),
                           foregroundColor: const Color(0xFF6B4EFF),
@@ -87,7 +81,6 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              // Recent photos
               ListenableBuilder(
                 listenable: state,
                 builder: (context, _) {
@@ -99,18 +92,28 @@ class HomeScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Foto Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
-                          TextButton(onPressed: () {}, child: const Text('Lihat Semua', style: TextStyle(color: Color(0xFF6B4EFF)))),
+                          TextButton(
+                            onPressed: () => _navigateToTab(context, 2),
+                            child: const Text('Lihat Semua', style: TextStyle(color: Color(0xFF6B4EFF))),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 8, mainAxisSpacing: 8),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
                         itemCount: state.photos.length > 6 ? 6 : state.photos.length,
                         itemBuilder: (context, index) {
                           return GestureDetector(
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PreviewScreen(photoPath: state.photos[index].path))),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => PreviewScreen(photoPath: state.photos[index].path)),
+                            ),
                             child: PhotoGridItem(photo: state.photos[index]),
                           );
                         },
@@ -125,4 +128,17 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _navigateToTab(BuildContext context, int index) {
+    final notifier = MainTabNotifier.of(context);
+    notifier?.changeTab(index);
+  }
+}
+
+class MainTabNotifier extends InheritedWidget {
+  final void Function(int) changeTab;
+  const MainTabNotifier({super.key, required this.changeTab, required super.child});
+  static MainTabNotifier? of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<MainTabNotifier>();
+  @override
+  bool updateShouldNotify(MainTabNotifier old) => false;
 }

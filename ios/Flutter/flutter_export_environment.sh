@@ -1,7 +1,7 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=C:\Users\Januar\develop\flutter"
-export "FLUTTER_APPLICATION_PATH=C:\Users\Januar\Documents\Tugas\Semester 4\Statistika\photopedia_flutter\photopedia"
+export "FLUTTER_ROOT=C:\Flutter"
+export "FLUTTER_APPLICATION_PATH=D:\Private\KULIAH\SEM 4\Probabilitas dan Statistika\Mobile env\photopedia"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_TARGET=lib\main.dart"
 export "FLUTTER_BUILD_DIR=build"

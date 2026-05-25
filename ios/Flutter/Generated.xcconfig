@@ -1,6 +1,6 @@
 // This is a generated file; do not edit or check into version control.
-FLUTTER_ROOT=C:\Users\Januar\develop\flutter
-FLUTTER_APPLICATION_PATH=C:\Users\Januar\Documents\Tugas\Semester 4\Statistika\photopedia_flutter\photopedia
+FLUTTER_ROOT=C:\Flutter
+FLUTTER_APPLICATION_PATH=D:\Private\KULIAH\SEM 4\Probabilitas dan Statistika\Mobile env\photopedia
 COCOAPODS_PARALLEL_CODE_SIGN=true
 FLUTTER_TARGET=lib\main.dart
 FLUTTER_BUILD_DIR=build

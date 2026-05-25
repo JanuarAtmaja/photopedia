@@ -31,3 +31,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    # Bingkai photobooth — letakkan Frame_1.png, Frame_2.png, Frame_3.png
+    # di folder assets/frames/ pada root proyek Flutter
+    - assets/frames/Frame_1.png
+    - assets/frames/Frame_2.png
+    - assets/frames/Frame_3.png
