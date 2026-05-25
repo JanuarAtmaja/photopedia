@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../models/photo_state.dart';
+import '../screens/edit_photo_screen.dart';
 
 /// LightboxViewer menampilkan foto dalam ukuran penuh layar.
 /// Mendukung navigasi prev/next antar foto dan fitur download.
@@ -208,6 +209,22 @@ class _LightboxViewerState extends State<LightboxViewer> {
                                   ),
                                 ),
                                 const Spacer(),
+                                // FIX 3: Tombol edit foto — langsung ke EditPhotoScreen
+                                IconButton(
+                                  icon: const Icon(Icons.edit_rounded,
+                                      color: Colors.white),
+                                  tooltip: 'Edit foto',
+                                  onPressed: () {
+                                    final photo = widget.photos[_currentIndex];
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => EditPhotoScreen(
+                                          photoPath: photo.path,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
                                 // Tombol download
                                 _isDownloading
                                     ? const SizedBox(

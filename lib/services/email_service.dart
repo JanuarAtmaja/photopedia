@@ -1,66 +1,97 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'dart:typed_data';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server/gmail.dart';
 
+/// EmailService menggunakan Gmail SMTP dengan App Password.
+///
+/// CARA SETUP (wajib dilakukan sekali):
+/// 1. Buka myaccount.google.com → Security → 2-Step Verification → aktifkan
+/// 2. Masih di Security → App passwords → Generate
+///    (pilih app: Mail, device: Other → ketik "Photopedia")
+/// 3. Salin 16 karakter yang muncul (hapus spasi)
+/// 4. Isi _gmailUser dan _gmailAppPassword di bawah
+///
+/// CATATAN KEAMANAN:
+/// Untuk aplikasi pribadi/internal ini aman.
+/// Jangan publish ke Play Store dengan kredensial hardcoded.
 class EmailService {
-  // Ganti dengan API key kamu dari dashboard Resend
-  static const String _apiKey = 're_7YKHVBpZ_MLu21t2f6UvxW2JQPsS4PGE8';
+  // ── Ganti dengan akun Gmail dan App Password kamu ────────────────────────
+  static const String _gmailUser = 'muhamadhisyamganteng@gmail.com';
+  static const String _gmailAppPassword = 'nvdrhfvmhzxuftij'; // 16 karakter, tanpa spasi
 
-  // Mode test: pakai onboarding@resend.dev
-  // Mode production: pakai email domain kamu sendiri
-  static const String _fromEmail = 'onboarding@resend.dev';
-  static const String _fromName = 'Photopedia App';
-
-  static const String _apiUrl = 'https://api.resend.com/emails';
-
-  /// Kirim email dengan lampiran foto.
-  /// [photoBytes] adalah bytes mentah file foto (bukan dataURL).
+  /// Kirim email dengan lampiran foto opsional.
   static Future<void> sendPhotoEmail({
     required String toName,
     required String toEmail,
-    List<int>? photoBytes,
+    Uint8List? photoBytes,
     String? photoFileName,
+    String subject = 'Foto dari Photopedia',
+    String? body,
   }) async {
-    // Bangun body request
-    final Map<String, dynamic> payload = {
-      'from': '$_fromName <$_fromEmail>',
-      'to': [toEmail],
-      'subject': 'Foto dari Photopedia',
-      'text':
-          'Halo $toName,\n\nBerikut foto yang diambil dari Photopedia.\nSemoga menyukainya!\n\nSalam,\nPhotopedia App',
-    };
+    final smtpServer = gmail(_gmailUser, _gmailAppPassword);
 
-    // Tambah attachment jika ada foto
+    final emailBody = body ??
+        'Halo $toName,\n\n'
+        'Berikut foto yang diambil dari Photopedia.\n'
+        'Semoga menyukainya!\n\n'
+        'Salam,\nPhotopedia App';
+
+    // Bangun pesan email
+    final message = Message()
+      ..from = const Address(_gmailUser, 'Photopedia App')
+      ..recipients.add(Address(toEmail, toName))
+      ..subject = subject
+      ..text = emailBody;
+
+    // Tambah lampiran jika ada foto
     if (photoBytes != null) {
-      payload['attachments'] = [
-        {
-          'filename': photoFileName ?? 'foto_photopedia.jpg',
-          // Resend butuh base64 murni, tanpa prefix "data:image/..."
-          'content': base64Encode(photoBytes),
-        }
-      ];
+      final fileName = photoFileName ?? 'foto_photopedia.jpg';
+      message.attachments.add(
+        StreamAttachment(
+          Stream.fromIterable([photoBytes]),
+          _mimeType(fileName),
+          fileName: fileName,
+        ),
+      );
     }
 
-    final response = await http
-        .post(
-          Uri.parse(_apiUrl),
-          headers: {
-            'Authorization': 'Bearer $_apiKey',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(payload),
-        )
-        .timeout(
-          const Duration(seconds: 30),
-          onTimeout: () => throw const EmailServiceException(
-            'Koneksi timeout. Periksa jaringan kamu.',
-          ),
-        );
+    try {
+      await send(message, smtpServer);
+    } on MailerException catch (e) {
+      // Terjemahkan error mailer ke pesan yang ramah
+      final msg = e.problems.isNotEmpty
+          ? e.problems.first.msg
+          : e.toString();
 
-    if (response.statusCode >= 400) {
-      final body = jsonDecode(response.body);
-      throw EmailServiceException(
-        body['message'] ?? 'Gagal mengirim email (${response.statusCode})',
-      );
+      if (msg.contains('535') || msg.contains('Username and Password')) {
+        throw const EmailServiceException(
+          'Login Gmail gagal. Pastikan App Password sudah benar '
+          'dan 2-Step Verification sudah aktif.',
+        );
+      } else if (msg.contains('timeout') || msg.contains('timed out')) {
+        throw const EmailServiceException(
+          'Koneksi timeout. Periksa jaringan internet kamu.',
+        );
+      }
+      throw EmailServiceException('Gagal mengirim email: $msg');
+    } catch (e) {
+      throw EmailServiceException('Terjadi kesalahan: $e');
+    }
+  }
+
+  /// Deteksi MIME type berdasarkan ekstensi file.
+  static String _mimeType(String fileName) {
+    final ext = fileName.split('.').last.toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'application/octet-stream';
     }
   }
 

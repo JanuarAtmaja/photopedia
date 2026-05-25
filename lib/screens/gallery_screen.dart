@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 import '../models/photo_state.dart';
 import '../widgets/lightbox_viewer.dart';
 import '../main.dart';
+import 'edit_photo_screen.dart';
+import 'preview_screen.dart';
 
 class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key});
@@ -303,18 +305,17 @@ class _PhotoGrid extends StatelessWidget {
         return _GridCell(
           photo: photo,
           onTap: () {
-            // Catat klik ke analitik melalui AppState
             AppStateScope.of(context).selectPhoto(photo);
-            // Buka Lightbox dengan navigasi prev/next
-            LightboxViewer.show(
-              context,
-              photos: photos,
-              initialIndex: index,
-            );
+            LightboxViewer.show(context, photos: photos, initialIndex: index);
           },
+          onEdit: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => EditPhotoScreen(photoPath: photo.path),
+          )),
+          onPreview: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => PreviewScreen(photoPath: photo.path),
+          )),
           onDelete: () => _confirmDelete(context, photo),
-          onFavorite: () =>
-              AppStateScope.of(context).toggleFavorite(photo.id),
+          onFavorite: () => AppStateScope.of(context).toggleFavorite(photo.id),
         );
       },
     );
@@ -352,12 +353,16 @@ class _GridCell extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback onFavorite;
+  final VoidCallback onEdit;      // ← BARU
+  final VoidCallback onPreview;   // ← BARU: buka preview + bingkai
 
   const _GridCell({
     required this.photo,
     required this.onTap,
     required this.onDelete,
     required this.onFavorite,
+    required this.onEdit,
+    required this.onPreview,
   });
 
   @override
@@ -435,8 +440,17 @@ class _GridCell extends StatelessWidget {
               },
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.fullscreen_rounded, color: Color(0xFF6B4EFF)),
+              leading: const Icon(Icons.edit_rounded, color: Color(0xFF6B4EFF)),
+              title: const Text('Edit Foto (Filter & Teks)'),
+              onTap: () { Navigator.pop(context); onEdit(); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_size_select_large_rounded, color: Colors.teal),
+              title: const Text('Pasang Bingkai'),
+              onTap: () { Navigator.pop(context); onPreview(); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.fullscreen_rounded, color: Color(0xFF6B4EFF)),
               title: const Text('Lihat Ukuran Penuh'),
               onTap: () {
                 Navigator.pop(context);

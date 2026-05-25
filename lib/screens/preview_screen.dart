@@ -25,15 +25,14 @@ class FrameSlot {
       this.leftFrac, this.topFrac, this.widthFrac, this.heightFrac);
 }
 
-/// Deskripsi satu pilihan bingkai.
 class FrameOption {
   final String id;
   final String label;
   final String? assetPath;
   final Color accent;
-
-  /// Tiga slot foto yang cocok dengan desain PNG bingkai.
   final List<FrameSlot>? slots;
+  // Rasio aspek asli PNG bingkai (width/height)
+  final double frameAspectRatio;
 
   const FrameOption({
     required this.id,
@@ -41,28 +40,30 @@ class FrameOption {
     required this.accent,
     this.assetPath,
     this.slots,
+    this.frameAspectRatio = 290.0 / 860.0,
   });
 }
 
-// ── Koordinat slot untuk setiap bingkai ──────────────────────────────────────
-// Nilai dihitung berdasarkan proporsi visual PNG (lebar ~290px, tinggi ~860px)
-
+// ── FIX 1: Koordinat slot dikalibrasi ulang dengan mengukur PNG frame ────────
+// Frame_1 (Film Strip): tiga slot foto horizontal, ada border hitam atas/bawah
 const _slotsFilmStrip = [
-  FrameSlot(0.10, 0.05, 0.80, 0.26), // kotak atas
-  FrameSlot(0.10, 0.34, 0.80, 0.26), // kotak tengah
-  FrameSlot(0.10, 0.63, 0.80, 0.26), // kotak bawah
+  FrameSlot(0.055, 0.055, 0.890, 0.245), // slot atas
+  FrameSlot(0.055, 0.330, 0.890, 0.245), // slot tengah
+  FrameSlot(0.055, 0.610, 0.890, 0.245), // slot bawah
 ];
 
+// Frame_2 (Y2K): background grid biru, pink blob, tiga slot
 const _slotsY2K = [
-  FrameSlot(0.08, 0.04, 0.84, 0.25),
-  FrameSlot(0.08, 0.32, 0.84, 0.25),
-  FrameSlot(0.08, 0.60, 0.84, 0.25),
+  FrameSlot(0.055, 0.038, 0.890, 0.245),
+  FrameSlot(0.055, 0.315, 0.890, 0.245),
+  FrameSlot(0.055, 0.595, 0.890, 0.245),
 ];
 
+// Frame_3 (Music Player): abu-abu, music player UI bawah, tiga slot foto
 const _slotsMusic = [
-  FrameSlot(0.07, 0.03, 0.86, 0.23),
-  FrameSlot(0.07, 0.29, 0.86, 0.23),
-  FrameSlot(0.07, 0.55, 0.86, 0.23),
+  FrameSlot(0.055, 0.038, 0.890, 0.230),
+  FrameSlot(0.055, 0.300, 0.890, 0.230),
+  FrameSlot(0.055, 0.560, 0.890, 0.230),
 ];
 
 /// Daftar semua bingkai yang tersedia — satu source of truth.
@@ -78,6 +79,7 @@ final List<FrameOption> kFrames = [
     accent: Color(0xFF2D2D2D),
     assetPath: 'assets/frames/Frame_1.png',
     slots: _slotsFilmStrip,
+    frameAspectRatio: 290.0 / 860.0,
   ),
   const FrameOption(
     id: 'frame2',
@@ -85,6 +87,7 @@ final List<FrameOption> kFrames = [
     accent: Color(0xFF6B4EFF),
     assetPath: 'assets/frames/Frame_2.png',
     slots: _slotsY2K,
+    frameAspectRatio: 290.0 / 860.0,
   ),
   const FrameOption(
     id: 'frame3',
@@ -92,6 +95,7 @@ final List<FrameOption> kFrames = [
     accent: Color(0xFF7CB518),
     assetPath: 'assets/frames/Frame_3.png',
     slots: _slotsMusic,
+    frameAspectRatio: 290.0 / 860.0,
   ),
 ];
 
@@ -108,12 +112,8 @@ class PreviewScreen extends StatefulWidget {
 }
 
 class _PreviewScreenState extends State<PreviewScreen> {
-  // Bingkai yang dipilih — mulai tanpa bingkai
   FrameOption _selectedFrame = kFrames.first;
-
-  // Tiga slot foto: slot[0] = foto dari kamera, slot[1..2] = kosong
   final List<String?> _slotPaths = [null, null, null];
-
   bool _isSaving = false;
   final GlobalKey _renderKey = GlobalKey();
 
@@ -134,8 +134,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
   }
 
-  // ─── Simpan hasil render ke galeri ──────────────────────────────────────
-
   Future<void> _saveResult() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
@@ -155,7 +153,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
       await File(outPath).writeAsBytes(bytes);
 
       if (!mounted) return;
-      // Cache context-dependent objects sebelum await
       final state = AppStateScope.of(context);
       final messenger = ScaffoldMessenger.of(context);
       await state.addPhoto(outPath);
@@ -175,7 +172,74 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
   }
 
-  // ─── Pilih foto untuk slot ───────────────────────────────────────────────
+  // FIX 2: Tombol FAB tambah foto — tidak lagi mengandalkan tap pada frame
+  void _showAddPhotoDialog() {
+    // Cari slot kosong pertama
+    int emptySlot = -1;
+    for (int i = 0; i < _slotPaths.length; i++) {
+      if (_slotPaths[i] == null) {
+        emptySlot = i;
+        break;
+      }
+    }
+
+    if (_selectedFrame.id == 'none') {
+      _showSnack('Pilih bingkai terlebih dahulu untuk menambah foto.');
+      return;
+    }
+
+    if (emptySlot == -1) {
+      // Semua slot terisi, tanya mau ganti yang mana
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        builder: (sheetCtx) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text('Semua slot terisi. Pilih slot yang ingin diganti:',
+                  style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const SizedBox(height: 8),
+              for (int i = 0; i < _slotPaths.length; i++)
+                ListTile(
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.file(File(_slotPaths[i]!),
+                        width: 40, height: 40, fit: BoxFit.cover),
+                  ),
+                  title: Text('Slot ${i + 1}'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.pop(sheetCtx);
+                    _handleSlotTap(i);
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      );
+    } else {
+      _handleSlotTap(emptySlot);
+    }
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: const Color(0xFF6B4EFF)),
+    );
+  }
 
   Future<void> _handleSlotTap(int slotIndex) async {
     await showModalBottomSheet(
@@ -223,7 +287,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 }
               },
             ),
-            // Foto tersimpan di AppState
             _buildSavedPhotoStrip(slotIndex, sheetCtx),
             const SizedBox(height: 8),
           ],
@@ -294,14 +357,11 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  // ─── Build ────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     final timeStr = DateFormat('HH:mm').format(DateTime.now());
     final hasFrame = _selectedFrame.id != 'none';
-    final filledSlots =
-        _slotPaths.where((s) => s != null).length;
+    final filledSlots = _slotPaths.where((s) => s != null).length;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5FF),
@@ -321,9 +381,18 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
         ],
       ),
+      // FIX 2: FAB di kanan bawah untuk tambah foto
+      floatingActionButton: hasFrame && filledSlots < 3
+          ? FloatingActionButton.small(
+              onPressed: _showAddPhotoDialog,
+              backgroundColor: const Color(0xFF6B4EFF),
+              tooltip: 'Tambah foto ke slot',
+              child: const Icon(Icons.add_photo_alternate_rounded,
+                  color: Colors.white),
+            )
+          : null,
       body: Column(
         children: [
-          // ─── Area foto / frame ─────────────────────────────────────────
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -333,11 +402,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
               ),
             ),
           ),
-
-          // ─── Pemilih bingkai ───────────────────────────────────────────
           _buildFrameSelector(),
-
-          // ─── Info slot ─────────────────────────────────────────────────
           if (hasFrame)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
@@ -354,22 +419,14 @@ class _PreviewScreenState extends State<PreviewScreen> {
                 ],
               ),
             ),
-
-          // ─── Metadata ──────────────────────────────────────────────────
           _buildMetadata(timeStr),
-
           const SizedBox(height: 8),
-
-          // ─── Tombol aksi ───────────────────────────────────────────────
           _buildActions(),
-
           SizedBox(height: MediaQuery.of(context).padding.bottom + 12),
         ],
       ),
     );
   }
-
-  // ─── Tampilan tunggal (tanpa bingkai) ────────────────────────────────────
 
   Widget _buildSingleView() {
     return Container(
@@ -397,98 +454,93 @@ class _PreviewScreenState extends State<PreviewScreen> {
     );
   }
 
-  // ─── FIX: Tampilan frame dengan slot foto ─────────────────────────────────
-
+  // FIX 1: Frame view yang tepat — PNG di atas, foto di slot yang presisi
   Widget _buildFrameView() {
     final slots = _selectedFrame.slots ?? _slotsFilmStrip;
+    final ratio = _selectedFrame.frameAspectRatio;
 
-    return LayoutBuilder(builder: (ctx, constraints) {
-      final W = constraints.maxWidth;
-      final H = constraints.maxHeight;
+    return Center(
+      child: AspectRatio(
+        aspectRatio: ratio,
+        child: LayoutBuilder(builder: (ctx, constraints) {
+          final W = constraints.maxWidth;
+          final H = constraints.maxHeight;
 
-      return Stack(
-        children: [
-          // Layer 0: background gelap agar slot kosong terlihat rapi
-          Positioned.fill(
-            child: Container(color: Colors.black),
-          ),
+          return Stack(
+            children: [
+              // Layer 0: background hitam
+              Positioned.fill(child: Container(color: Colors.black)),
 
-          // Layer 1: foto-foto dalam slot
-          for (int i = 0; i < slots.length; i++)
-            Positioned(
-              left: slots[i].leftFrac * W,
-              top: slots[i].topFrac * H,
-              width: slots[i].widthFrac * W,
-              height: slots[i].heightFrac * H,
-              child: _slotPaths[i] != null
-                  ? Image.file(
-                      File(_slotPaths[i]!),
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: Colors.grey.shade900,
-                        child: const Icon(Icons.broken_image,
-                            color: Colors.white54),
-                      ),
-                    )
-                  : GestureDetector(
-                      onTap: () => _handleSlotTap(i),
-                      child: Container(
-                        color: Colors.grey.shade900,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                                Icons.add_photo_alternate_rounded,
-                                color: Colors.white54,
-                                size: 28),
-                            const SizedBox(height: 4),
-                            Text('Foto ${i + 1}',
-                                style: const TextStyle(
-                                    color: Colors.white38,
-                                    fontSize: 11)),
-                          ],
+              // Layer 1: foto dalam slot — PRESISI sesuai koordinat
+              for (int i = 0; i < slots.length; i++)
+                Positioned(
+                  left: slots[i].leftFrac * W,
+                  top: slots[i].topFrac * H,
+                  width: slots[i].widthFrac * W,
+                  height: slots[i].heightFrac * H,
+                  child: _slotPaths[i] != null
+                      ? Image.file(
+                          File(_slotPaths[i]!),
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.grey.shade900,
+                            child: const Icon(Icons.broken_image,
+                                color: Colors.white54),
+                          ),
+                        )
+                      : GestureDetector(
+                          onTap: () => _handleSlotTap(i),
+                          child: Container(
+                            color: Colors.grey.shade900,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.add_photo_alternate_rounded,
+                                    color: Colors.white54, size: 28),
+                                const SizedBox(height: 4),
+                                Text('Foto ${i + 1}',
+                                    style: const TextStyle(
+                                        color: Colors.white38, fontSize: 11)),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-            ),
+                ),
 
-          // Layer 2: PNG bingkai paling atas (overlay)
-          Positioned.fill(
-            child: Image.asset(
-              _selectedFrame.assetPath!,
-              fit: BoxFit.fill,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
-          ),
-
-          // Layer 3: tombol ganti foto di atas foto yang sudah terisi
-          for (int i = 0; i < slots.length; i++)
-            if (_slotPaths[i] != null)
-              Positioned(
-                right: (1 - slots[i].leftFrac - slots[i].widthFrac) * W + 4,
-                top: slots[i].topFrac * H + 4,
-                child: GestureDetector(
-                  onTap: () => _handleSlotTap(i),
-                  child: Container(
-                    width: 26,
-                    height: 26,
-                    decoration: const BoxDecoration(
-                      color: Colors.black54,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.edit_rounded,
-                        color: Colors.white, size: 14),
-                  ),
+              // Layer 2: PNG bingkai di atas — FILL agar menutupi tepat
+              Positioned.fill(
+                child: Image.asset(
+                  _selectedFrame.assetPath!,
+                  fit: BoxFit.fill, // fill agar pas menutupi frame
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
               ),
-        ],
-      );
-    });
-  }
 
-  // ─── Pemilih bingkai ─────────────────────────────────────────────────────
+              // Layer 3: tombol ganti foto di slot terisi
+              for (int i = 0; i < slots.length; i++)
+                if (_slotPaths[i] != null)
+                  Positioned(
+                    right: (1 - slots[i].leftFrac - slots[i].widthFrac) * W + 4,
+                    top: slots[i].topFrac * H + 4,
+                    child: GestureDetector(
+                      onTap: () => _handleSlotTap(i),
+                      child: Container(
+                        width: 26, height: 26,
+                        decoration: const BoxDecoration(
+                            color: Colors.black54, shape: BoxShape.circle),
+                        child: const Icon(Icons.edit_rounded,
+                            color: Colors.white, size: 14),
+                      ),
+                    ),
+                  ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
 
   Widget _buildFrameSelector() {
     return Container(
@@ -503,7 +555,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
           final isSelected = _selectedFrame.id == frame.id;
 
           return GestureDetector(
-            // FIX: setState dipanggil langsung — tidak ada lapisan yang memblokir
             onTap: () => setState(() => _selectedFrame = frame),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -522,7 +573,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Thumbnail
                   if (frame.assetPath != null)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(6),

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../models/photo_state.dart';
 import '../services/email_service.dart';
@@ -64,7 +65,7 @@ class _EmailScreenState extends State<EmailScreen> {
     setState(() => _isSending = true);
 
     try {
-      List<int>? photoBytes;
+      Uint8List? photoBytes;
       String? photoFileName;
 
       if (_attachedPhotoPath != null) {

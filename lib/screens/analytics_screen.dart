@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/analytics_service.dart';
-import '../main.dart';
 
 /// AnalyticsDashboard menampilkan statistik aktivitas pengguna:
 /// jumlah klik foto, foto diambil, foto dikirim, foto dihapus,
@@ -27,6 +26,8 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
   Future<void> _loadStats() async {
     setState(() => _isLoading = true);
+    // Pastikan service terinisialisasi sebelum ambil data
+    await AnalyticsService.instance.init();
     final stats = await AnalyticsService.instance.getStats();
     if (mounted) setState(() { _stats = stats; _isLoading = false; });
   }
@@ -53,15 +54,95 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     }
   }
 
+  // FIX 6: Drawer lengkap yang sama dengan MainShell
+  Widget _buildDrawer() {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Color(0xFF6B4EFF)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const CircleAvatar(
+                  backgroundColor: Colors.white,
+                  radius: 30,
+                  child: Icon(Icons.person, color: Color(0xFF6B4EFF), size: 35),
+                ),
+                const SizedBox(height: 10),
+                const Text('Photopedia User',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('user@photopedia.com',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.home_rounded, color: Colors.grey),
+            title: const Text('Beranda'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).popUntil((r) => r.isFirst);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.camera_alt_rounded, color: Colors.grey),
+            title: const Text('Camera'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).popUntil((r) => r.isFirst);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_rounded, color: Colors.grey),
+            title: const Text('Gallery'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).popUntil((r) => r.isFirst);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.email_rounded, color: Colors.grey),
+            title: const Text('Email'),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).popUntil((r) => r.isFirst);
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.bar_chart_rounded, color: Color(0xFF6B4EFF)),
+            title: const Text('Analitik Pengguna',
+                style: TextStyle(color: Color(0xFF6B4EFF), fontWeight: FontWeight.bold)),
+            selected: true,
+            selectedTileColor: const Color(0xFF6B4EFF).withValues(alpha: 0.1),
+            onTap: () => Navigator.pop(context),
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings_rounded),
+            title: const Text('Settings'),
+            onTap: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F5FF),
+      // FIX 6: Drawer built-in agar bisa dibuka di halaman ini
+      drawer: _buildDrawer(),
       appBar: AppBar(
         title: const Text('Analitik Pengguna'),
-        leading: IconButton(
-          icon: const Icon(Icons.menu_rounded),
-          onPressed: () => MainShell.scaffoldKey.currentState?.openDrawer(),
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu_rounded),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
         ),
         actions: [
           IconButton(
@@ -88,7 +169,6 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ─── Kartu statistik ─────────────────────────────
                         const Text(
                           'Ringkasan Aktivitas',
                           style: TextStyle(
@@ -135,7 +215,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
                         const SizedBox(height: 28),
 
-                        // ─── Log aktivitas ───────────────────────────────
+                        // FIX 7: Log aktivitas — tampilkan dengan benar
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -153,26 +233,53 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                         ),
                         const SizedBox(height: 12),
 
-                        if (_stats!.recentLogs.isEmpty)
-                          const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(32),
-                              child: Text('Belum ada aktivitas tercatat.',
-                                  style: TextStyle(color: Colors.grey)),
-                            ),
-                          )
-                        else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _stats!.recentLogs.length,
-                            separatorBuilder: (_, __) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              final log = _stats!.recentLogs[index];
-                              return _LogTile(log: log);
-                            },
-                          ),
+                        // FIX 7: Render log dalam Container yang punya ukuran
+                        // (tidak seperti sebelumnya yang tidak dirender karena constraint kosong)
+                        _stats!.recentLogs.isEmpty
+                            ? Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(32),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.history_rounded,
+                                        size: 48, color: Colors.grey.shade300),
+                                    const SizedBox(height: 12),
+                                    const Text('Belum ada aktivitas tercatat.',
+                                        style: TextStyle(color: Colors.grey)),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Aktivitas akan muncul setelah kamu\nmengambil, mengedit, atau mengirim foto.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          color: Colors.grey, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                // FIX 7: clip agar radius terlihat
+                                clipBehavior: Clip.hardEdge,
+                                child: Column(
+                                  children: [
+                                    for (int i = 0;
+                                        i < _stats!.recentLogs.length;
+                                        i++) ...[
+                                      _LogTile(log: _stats!.recentLogs[i]),
+                                      if (i < _stats!.recentLogs.length - 1)
+                                        const Divider(height: 1, indent: 16),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),

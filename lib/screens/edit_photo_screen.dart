@@ -661,53 +661,68 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
 
   Widget _buildFilterRow() {
     return SizedBox(
-      height: 80,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        itemExtent: 68,
-        itemCount: kAppFilters.length,
-        itemBuilder: (_, i) {
-          final f = kAppFilters[i];
-          final isActive = _activeFilter.id == f.id;
-          return GestureDetector(
-            onTap: () {
-              setState(() => _activeFilter = f);
-              _applyCurrentFilter();
-            },
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      height: 90,
+      child: kAppFilters.length <= 5
+          // Jika filter sedikit: tampilkan rata tengah (sama seperti camera screen)
+          ? SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: f.chipColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: isActive
-                          ? Border.all(color: Colors.white, width: 3)
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    f.label,
-                    style: TextStyle(
-                      color: isActive ? Colors.white : Colors.white54,
-                      fontSize: 10,
-                      fontWeight: isActive
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                  ),
+                  const SizedBox(width: 12),
+                  for (int i = 0; i < kAppFilters.length; i++)
+                    _buildFilterChip(kAppFilters[i]),
+                  const SizedBox(width: 12),
                 ],
               ),
+            )
+          // Jika banyak filter: scroll horizontal tapi tetap centered jika muat
+          : ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              itemExtent: 68,
+              itemCount: kAppFilters.length,
+              itemBuilder: (_, i) => _buildFilterChip(kAppFilters[i]),
             ),
-          );
-        },
+    );
+  }
+
+  Widget _buildFilterChip(CameraFilter f) {
+    final isActive = _activeFilter.id == f.id;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _activeFilter = f);
+        _applyCurrentFilter();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: f.chipColor,
+                borderRadius: BorderRadius.circular(12),
+                border: isActive
+                    ? Border.all(color: Colors.white, width: 3)
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              f.label,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.white54,
+                fontSize: 10,
+                fontWeight:
+                    isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
