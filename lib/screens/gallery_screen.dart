@@ -87,7 +87,7 @@ class _GalleryScreenState extends State<GalleryScreen>
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
       backgroundColor:
-          isSuccess ? const Color(0xFF6B4EFF) : Colors.red.shade600,
+          isSuccess ? const Color(0xFF5B62B3) : Colors.red.shade600,
       behavior: SnackBarBehavior.floating,
     ));
   }
@@ -96,33 +96,33 @@ class _GalleryScreenState extends State<GalleryScreen>
   Widget build(BuildContext context) {
     final state = AppStateScope.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F5FF),
+      backgroundColor: const Color(0xFFEDE2E0),
       appBar: AppBar(
         title: const Text('Galeri'),
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: Color(0xFF6B4EFF)),
+          icon: const Icon(Icons.menu_rounded, color: Color(0xFF5B62B3)),
           onPressed: () =>
               MainShell.scaffoldKey.currentState?.openDrawer(),
         ),
         actions: [
           // Tombol upload (Drag & Drop alternatif untuk mobile)
           IconButton(
-            icon: const Icon(Icons.upload_rounded, color: Color(0xFF6B4EFF)),
+            icon: const Icon(Icons.upload_rounded, color: Color(0xFF5B62B3)),
             tooltip: 'Upload foto',
             onPressed: _handlePickUpload,
           ),
           IconButton(
             icon: const Icon(Icons.arrow_back_ios_rounded),
-            color: const Color(0xFF6B4EFF),
+            color: const Color(0xFF5B62B3),
             onPressed: () => Navigator.maybePop(context),
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFF6B4EFF),
+          labelColor: const Color(0xFF5B62B3),
           unselectedLabelColor: Colors.grey,
-          indicatorColor: const Color(0xFF6B4EFF),
+          indicatorColor: const Color(0xFF5B62B3),
           labelStyle:
               const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           tabs: const [
@@ -176,7 +176,7 @@ class _GalleryScreenState extends State<GalleryScreen>
       // FAB Upload
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _handlePickUpload,
-        backgroundColor: const Color(0xFF6B4EFF),
+        backgroundColor: const Color(0xFF5B62B3),
         icon: const Icon(Icons.add_photo_alternate_rounded,
             color: Colors.white),
         label: const Text('Upload', style: TextStyle(color: Colors.white)),
@@ -203,19 +203,19 @@ class _DropZoneWidget extends StatelessWidget {
         padding: const EdgeInsets.all(40),
         decoration: BoxDecoration(
           color: isDragOver
-              ? const Color(0xFF6B4EFF).withValues(alpha: 0.08)
+              ? const Color(0xFF5B62B3).withValues(alpha: 0.08)
               : Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isDragOver
-                ? const Color(0xFF6B4EFF)
-                : const Color(0xFFD8D0FF),
+                ? const Color(0xFF5B62B3)
+                : const Color(0xFFCFD1E8),
             width: isDragOver ? 2.5 : 1.5,
             // Efek dashed via outline
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF6B4EFF).withValues(alpha: 0.06),
+              color: const Color(0xFF5B62B3).withValues(alpha: 0.06),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -230,8 +230,8 @@ class _DropZoneWidget extends StatelessWidget {
                   : Icons.add_photo_alternate_outlined,
               size: 64,
               color: isDragOver
-                  ? const Color(0xFF6B4EFF)
-                  : const Color(0xFFB39DFF),
+                  ? const Color(0xFF5B62B3)
+                  : const Color(0xFF8E93CC),
             ),
             const SizedBox(height: 16),
             Text(
@@ -240,7 +240,7 @@ class _DropZoneWidget extends StatelessWidget {
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: isDragOver
-                    ? const Color(0xFF6B4EFF)
+                    ? const Color(0xFF5B62B3)
                     : const Color(0xFF2D2D2D),
               ),
             ),
@@ -256,7 +256,7 @@ class _DropZoneWidget extends StatelessWidget {
               icon: const Icon(Icons.folder_open_rounded),
               label: const Text('Pilih dari Galeri'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6B4EFF),
+                backgroundColor: const Color(0xFF5B62B3),
                 foregroundColor: Colors.white,
               ),
             ),
@@ -284,7 +284,7 @@ class _PhotoGrid extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.photo_library_outlined,
-                size: 64, color: Color(0xFFB39DFF)),
+                size: 64, color: Color(0xFF8E93CC)),
             SizedBox(height: 12),
             Text('Belum ada foto', style: TextStyle(color: Colors.grey)),
           ],
@@ -309,10 +309,10 @@ class _PhotoGrid extends StatelessWidget {
             LightboxViewer.show(context, photos: photos, initialIndex: index);
           },
           onEdit: () => Navigator.push(context, MaterialPageRoute(
-            builder: (_) => EditPhotoScreen(photoPath: photo.path),
+            builder: (_) => EditPhotoScreen(photoPaths: [photo.path]),
           )),
           onPreview: () => Navigator.push(context, MaterialPageRoute(
-            builder: (_) => PreviewScreen(photoPath: photo.path),
+            builder: (_) => PreviewScreen(photoPaths: [photo.path]),
           )),
           onDelete: () => _confirmDelete(context, photo),
           onFavorite: () => AppStateScope.of(context).toggleFavorite(photo.id),
@@ -379,9 +379,9 @@ class _GridCell extends StatelessWidget {
               File(photo.path),
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(
-                color: const Color(0xFFEDE9FF),
+                color: const Color(0xFFE8E4F5),
                 child: const Icon(Icons.broken_image,
-                    color: Color(0xFFB39DFF)),
+                    color: Color(0xFF8E93CC)),
               ),
             ),
           ),
@@ -440,7 +440,7 @@ class _GridCell extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.edit_rounded, color: Color(0xFF6B4EFF)),
+              leading: const Icon(Icons.edit_rounded, color: Color(0xFF5B62B3)),
               title: const Text('Edit Foto (Filter & Teks)'),
               onTap: () { Navigator.pop(context); onEdit(); },
             ),
@@ -450,7 +450,7 @@ class _GridCell extends StatelessWidget {
               onTap: () { Navigator.pop(context); onPreview(); },
             ),
             ListTile(
-              leading: const Icon(Icons.fullscreen_rounded, color: Color(0xFF6B4EFF)),
+              leading: const Icon(Icons.fullscreen_rounded, color: Color(0xFF5B62B3)),
               title: const Text('Lihat Ukuran Penuh'),
               onTap: () {
                 Navigator.pop(context);

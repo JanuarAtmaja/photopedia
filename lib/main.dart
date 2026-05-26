@@ -5,15 +5,18 @@ import 'screens/home_screen.dart';
 import 'screens/camera_screen.dart';
 import 'screens/gallery_screen.dart';
 import 'screens/email_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/analytics_screen.dart';
+
+// ─── Warna palette ────────────────────────────────────────────────────────────
+const kPrimary    = Color(0xFF5B62B3); // soft purple
+const kBackground = Color(0xFFEDE2E0); // warm background
+const kSurface    = Colors.white;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-
-  // ─── Fase 1: Muat data foto dari SharedPreferences (persistensi) ──────────
   await AppState().loadFromStorage();
-
   runApp(const PhotopediaApp());
 }
 
@@ -29,31 +32,30 @@ class PhotopediaApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF6B4EFF),
-            primary: const Color(0xFF6B4EFF),
-            secondary: const Color(0xFFB39DFF),
-            surface: const Color(0xFFF8F5FF),
+            seedColor: kPrimary,
+            primary: kPrimary,
+            secondary: const Color(0xFF8E93CC),
+            surface: kSurface,
           ),
-          scaffoldBackgroundColor: const Color(0xFFF8F5FF),
+          scaffoldBackgroundColor: kBackground,
           appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFFF8F5FF),
-            foregroundColor: Color(0xFF6B4EFF),
+            backgroundColor: kBackground,
+            foregroundColor: kPrimary,
             elevation: 0,
             titleTextStyle: TextStyle(
-              color: Color(0xFF6B4EFF),
+              color: kPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6B4EFF),
+              backgroundColor: kPrimary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             ),
           ),
           useMaterial3: true,
@@ -92,7 +94,7 @@ class _MainShellState extends State<MainShell> {
             padding: EdgeInsets.zero,
             children: [
               DrawerHeader(
-                decoration: const BoxDecoration(color: Color(0xFF6B4EFF)),
+                decoration: const BoxDecoration(color: kPrimary),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -100,8 +102,7 @@ class _MainShellState extends State<MainShell> {
                     const CircleAvatar(
                       backgroundColor: Colors.white,
                       radius: 30,
-                      child: Icon(Icons.person,
-                          color: Color(0xFF6B4EFF), size: 35),
+                      child: Icon(Icons.person, color: kPrimary, size: 35),
                     ),
                     const SizedBox(height: 10),
                     const Text(
@@ -124,11 +125,10 @@ class _MainShellState extends State<MainShell> {
               _buildDrawerTile(1, Icons.camera_alt_rounded, 'Camera'),
               _buildDrawerTile(2, Icons.photo_library_rounded, 'Gallery'),
               _buildDrawerTile(3, Icons.email_rounded, 'Email'),
+              _buildDrawerTile(4, Icons.settings_rounded, 'Settings'),
               const Divider(),
-              // ─── Analitik ──────────────────────────────────────────────
               ListTile(
-                leading: const Icon(Icons.bar_chart_rounded,
-                    color: Color(0xFF6B4EFF)),
+                leading: const Icon(Icons.bar_chart_rounded, color: kPrimary),
                 title: const Text('Analitik Pengguna'),
                 onTap: () {
                   Navigator.pop(context);
@@ -138,11 +138,6 @@ class _MainShellState extends State<MainShell> {
                         builder: (_) => const AnalyticsDashboard()),
                   );
                 },
-              ),
-              ListTile(
-                leading: const Icon(Icons.settings_rounded),
-                title: const Text('Settings'),
-                onTap: () => Navigator.pop(context),
               ),
             ],
           ),
@@ -154,6 +149,7 @@ class _MainShellState extends State<MainShell> {
             CameraScreen(),
             GalleryScreen(),
             EmailScreen(),
+            SettingsScreen(),
           ],
         ),
         bottomNavigationBar: Container(
@@ -193,6 +189,11 @@ class _MainShellState extends State<MainShell> {
                       label: 'Email',
                       selected: _selectedIndex == 3,
                       onTap: () => _onItemTapped(3)),
+                  _NavItem(
+                      icon: Icons.settings_rounded,
+                      label: 'Settings',
+                      selected: _selectedIndex == 4,
+                      onTap: () => _onItemTapped(4)),
                 ],
               ),
             ),
@@ -205,17 +206,16 @@ class _MainShellState extends State<MainShell> {
   Widget _buildDrawerTile(int index, IconData icon, String label) {
     final isSelected = _selectedIndex == index;
     return ListTile(
-      leading: Icon(icon,
-          color: isSelected ? const Color(0xFF6B4EFF) : Colors.grey),
+      leading: Icon(icon, color: isSelected ? kPrimary : Colors.grey),
       title: Text(
         label,
         style: TextStyle(
-          color: isSelected ? const Color(0xFF6B4EFF) : Colors.black87,
+          color: isSelected ? kPrimary : Colors.black87,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),
       selected: isSelected,
-      selectedTileColor: const Color(0xFF6B4EFF).withValues(alpha: 0.1),
+      selectedTileColor: kPrimary.withValues(alpha: 0.1),
       onTap: () {
         _onItemTapped(index);
         Navigator.pop(context);
@@ -241,10 +241,10 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected
-              ? const Color(0xFF6B4EFF).withValues(alpha: 0.12)
+              ? kPrimary.withValues(alpha: 0.12)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
@@ -252,20 +252,15 @@ class _NavItem extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon,
-                color: selected
-                    ? const Color(0xFF6B4EFF)
-                    : Colors.grey.shade400,
-                size: 24),
+                color: selected ? kPrimary : Colors.grey.shade400,
+                size: 22),
             const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                fontSize: 10,
-                fontWeight:
-                    selected ? FontWeight.bold : FontWeight.normal,
-                color: selected
-                    ? const Color(0xFF6B4EFF)
-                    : Colors.grey.shade400,
+                fontSize: 9,
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                color: selected ? kPrimary : Colors.grey.shade400,
               ),
             ),
           ],

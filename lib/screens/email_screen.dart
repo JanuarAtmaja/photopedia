@@ -167,7 +167,7 @@ class _EmailScreenState extends State<EmailScreen> {
                         borderRadius: BorderRadius.circular(10),
                         border: isSelected
                             ? Border.all(
-                                color: const Color(0xFF6B4EFF), width: 3)
+                                color: const Color(0xFF5B62B3), width: 3)
                             : null,
                       ),
                       child: ClipRRect(
@@ -189,14 +189,14 @@ class _EmailScreenState extends State<EmailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
       backgroundColor:
-          isError ? Colors.red.shade600 : const Color(0xFF6B4EFF),
+          isError ? Colors.red.shade600 : const Color(0xFF5B62B3),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F5FF),
+      backgroundColor: const Color(0xFFEDE2E0),
       appBar: AppBar(
         title: const Text('Kirim Email'),
         leading: IconButton(
@@ -207,7 +207,7 @@ class _EmailScreenState extends State<EmailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.arrow_back_ios_rounded),
-            color: const Color(0xFF6B4EFF),
+            color: const Color(0xFF5B62B3),
             onPressed: () => Navigator.maybePop(context),
           ),
         ],
@@ -259,12 +259,12 @@ class _EmailScreenState extends State<EmailScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFD8D0FF)),
+                  border: Border.all(color: const Color(0xFFCFD1E8)),
                 ),
                 child: Row(
                   children: [
                     const Icon(Icons.attach_file_rounded,
-                        color: Color(0xFF6B4EFF)),
+                        color: Color(0xFF5B62B3)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -316,7 +316,7 @@ class _EmailScreenState extends State<EmailScreen> {
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          prefixIcon: Icon(icon, color: const Color(0xFF6B4EFF), size: 20),
+          prefixIcon: Icon(icon, color: const Color(0xFF5B62B3), size: 20),
           border: InputBorder.none,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

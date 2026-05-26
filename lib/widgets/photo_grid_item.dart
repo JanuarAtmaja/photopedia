@@ -21,8 +21,8 @@ class PhotoGridItem extends StatelessWidget {
               File(photo.path),
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Container(
-                color: const Color(0xFFEDE9FF),
-                child: const Icon(Icons.photo, color: Color(0xFFB39DFF)),
+                color: const Color(0xFFE8E4F5),
+                child: const Icon(Icons.photo, color: Color(0xFF8E93CC)),
               ),
             ),
             if (photo.isFavorite)

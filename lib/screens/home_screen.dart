@@ -37,19 +37,19 @@ class HomeScreen extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
-                          BoxShadow(color: const Color(0xFF6B4EFF).withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 4)),
+                          BoxShadow(color: const Color(0xFF5B62B3).withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 4)),
                         ],
                       ),
                       child: Column(
                         children: [
                           Container(
                             width: 80, height: 80,
-                            decoration: BoxDecoration(color: const Color(0xFFEDE9FF), borderRadius: BorderRadius.circular(16)),
-                            child: const Icon(Icons.camera_enhance_rounded, size: 40, color: Color(0xFF6B4EFF)),
+                            decoration: BoxDecoration(color: const Color(0xFFE8E4F5), borderRadius: BorderRadius.circular(16)),
+                            child: const Icon(Icons.camera_enhance_rounded, size: 40, color: Color(0xFF5B62B3)),
                           ),
                           const SizedBox(height: 16),
                           const Text('PHOTOPEDIA',
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF6B4EFF), letterSpacing: 1.2)),
+                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF5B62B3), letterSpacing: 1.2)),
                           const SizedBox(height: 10),
                           const Text(
                             'Photobooth seru yang bikin momen kamu jadi lebih hidup dan estetik. Akses kamera dan galeri dengan cepat.',
@@ -71,8 +71,8 @@ class HomeScreen extends StatelessWidget {
                             child: OutlinedButton(
                               onPressed: () => _navigateToTab(context, 2),
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFF6B4EFF)),
-                                foregroundColor: const Color(0xFF6B4EFF),
+                                side: const BorderSide(color: Color(0xFF5B62B3)),
+                                foregroundColor: const Color(0xFF5B62B3),
                                 padding: const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
@@ -91,7 +91,7 @@ class HomeScreen extends StatelessWidget {
                         const Text('Foto Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
                         TextButton(
                           onPressed: () => _navigateToTab(context, 2),
-                          child: const Text('Lihat Semua', style: TextStyle(color: Color(0xFF6B4EFF))),
+                          child: const Text('Lihat Semua', style: TextStyle(color: Color(0xFF5B62B3))),
                         ),
                       ],
                     ),
@@ -106,7 +106,7 @@ class HomeScreen extends StatelessWidget {
                       itemBuilder: (context, index) {
                         return GestureDetector(
                           onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => PreviewScreen(photoPath: state.photos[index].path))),
+                            MaterialPageRoute(builder: (_) => PreviewScreen(photoPaths: [state.photos[index].path]))),
                           child: PhotoGridItem(photo: state.photos[index]),
                         );
                       },

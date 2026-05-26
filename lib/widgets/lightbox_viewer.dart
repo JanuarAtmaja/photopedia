@@ -106,7 +106,7 @@ class _LightboxViewerState extends State<LightboxViewer> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Foto disimpan ke: $fileName'),
-            backgroundColor: const Color(0xFF6B4EFF),
+            backgroundColor: const Color(0xFF5B62B3),
             behavior: SnackBarBehavior.floating,
             action: SnackBarAction(
               label: 'OK',
@@ -218,8 +218,7 @@ class _LightboxViewerState extends State<LightboxViewer> {
                                     final photo = widget.photos[_currentIndex];
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (_) => EditPhotoScreen(
-                                          photoPath: photo.path,
+                                        builder: (_) => EditPhotoScreen(photoPaths: [photo.path],
                                         ),
                                       ),
                                     );
@@ -317,7 +316,7 @@ class _LightboxViewerState extends State<LightboxViewer> {
                                       border: isActive
                                           ? Border.all(
                                               color:
-                                                  const Color(0xFF6B4EFF),
+                                                  const Color(0xFF5B62B3),
                                               width: 2.5)
                                           : null,
                                     ),

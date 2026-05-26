@@ -134,6 +134,13 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> clearAll() async {
+    _photos.clear();
+    _selectedPhoto = null;
+    notifyListeners();
+    await _persist();
+  }
+
   Future<void> updatePhotoPath(String id, String newPath) async {
     final idx = _photos.indexWhere((p) => p.id == id);
     if (idx != -1) {

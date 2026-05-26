@@ -16,7 +16,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   UserStats? _stats;
   bool _isLoading = true;
 
-  static const _primary = Color(0xFF6B4EFF);
+  static const _primary = Color(0xFF5B62B3);
 
   @override
   void initState() {
@@ -61,7 +61,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
         padding: EdgeInsets.zero,
         children: [
           DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF6B4EFF)),
+            decoration: const BoxDecoration(color: Color(0xFF5B62B3)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
@@ -69,7 +69,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                 const CircleAvatar(
                   backgroundColor: Colors.white,
                   radius: 30,
-                  child: Icon(Icons.person, color: Color(0xFF6B4EFF), size: 35),
+                  child: Icon(Icons.person, color: Color(0xFF5B62B3), size: 35),
                 ),
                 const SizedBox(height: 10),
                 const Text('Photopedia User',
@@ -113,11 +113,11 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.bar_chart_rounded, color: Color(0xFF6B4EFF)),
+            leading: const Icon(Icons.bar_chart_rounded, color: Color(0xFF5B62B3)),
             title: const Text('Analitik Pengguna',
-                style: TextStyle(color: Color(0xFF6B4EFF), fontWeight: FontWeight.bold)),
+                style: TextStyle(color: Color(0xFF5B62B3), fontWeight: FontWeight.bold)),
             selected: true,
-            selectedTileColor: const Color(0xFF6B4EFF).withValues(alpha: 0.1),
+            selectedTileColor: const Color(0xFF5B62B3).withValues(alpha: 0.1),
             onTap: () => Navigator.pop(context),
           ),
           ListTile(
@@ -133,7 +133,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F5FF),
+      backgroundColor: const Color(0xFFEDE2E0),
       // FIX 6: Drawer built-in agar bisa dibuka di halaman ini
       drawer: _buildDrawer(),
       appBar: AppBar(
@@ -367,7 +367,7 @@ class _LogTile extends StatelessWidget {
 
   Color _color() {
     switch (log.action) {
-      case 'photo_taken': return const Color(0xFF6B4EFF);
+      case 'photo_taken': return const Color(0xFF5B62B3);
       case 'photo_clicked': return Colors.teal;
       case 'photo_sent': return Colors.green;
       case 'photo_deleted': return Colors.red;
