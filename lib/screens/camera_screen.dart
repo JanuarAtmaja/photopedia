@@ -196,6 +196,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   bool get _isFrontCamera =>
       _controller?.description.lensDirection == CameraLensDirection.front;
 
+  bool _mirrorFront = true;      // mirror selfie (default aktif)
+  bool _showCuttingFrame = true; // overlay kotak panduan posisi wajah
+
   // Ambil 1 foto → simpan ke list. Kalau sudah 3, lanjut ke edit.
   Future<void> _takePicture() async {
     final ctrl = _controller;
@@ -320,6 +323,8 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       body: Stack(
         children: [
           Positioned.fill(child: _buildCameraPreview()),
+          // Cutting frame overlay
+          if (_showCuttingFrame) Positioned.fill(child: _buildCuttingFrameOverlay()),
           // Strip thumbnail foto yang sudah diambil
           Positioned(top: 100, left: 12, child: _buildCapturedStrip()),
           Positioned(bottom: 0, left: 0, right: 0, child: _buildControls()),
@@ -343,7 +348,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         ),
       ),
     );
-    if (_isFrontCamera) {
+    if (_isFrontCamera && _mirrorFront) {
       preview = Transform.scale(scaleX: -1.0, child: preview);
     }
     return ColorFiltered(
@@ -353,6 +358,70 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   }
 
   // Strip kecil di pojok kiri atas yang menampilkan foto-foto yang sudah diambil
+  Widget _buildCuttingFrameOverlay() {
+    // Hanya border kotak — tanpa dim area luar agar tidak mengecohkan pengguna
+    return LayoutBuilder(builder: (ctx, constraints) {
+      final W = constraints.maxWidth;
+      final H = constraints.maxHeight;
+      final boxW = W * 0.55;
+      final boxH = H * 0.38;
+      final boxLeft = (W - boxW) / 2;
+      final boxTop = (H - boxH) / 2 - H * 0.04;
+
+      return Stack(children: [
+        // Hanya border kotak fokus (tanpa CustomPaint dim)
+        Positioned(
+          left: boxLeft,
+          top: boxTop,
+          width: boxW,
+          height: boxH,
+          child: Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFF5B62B3), width: 2.5),
+            ),
+            child: Stack(children: [
+              Positioned(
+                top: 6, left: 6,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5B62B3).withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'Posisikan wajah di sini',
+                    style: TextStyle(color: Colors.white, fontSize: 10,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              _cornerBracket(Alignment.topLeft),
+              _cornerBracket(Alignment.topRight),
+              _cornerBracket(Alignment.bottomLeft),
+              _cornerBracket(Alignment.bottomRight),
+            ]),
+          ),
+        ),
+      ]);
+    });
+  }
+
+  Widget _cornerBracket(Alignment alignment) {
+    const size = 16.0;
+    const thick = 3.0;
+    final isLeft = alignment == Alignment.topLeft || alignment == Alignment.bottomLeft;
+    final isTop  = alignment == Alignment.topLeft || alignment == Alignment.topRight;
+    return Align(
+      alignment: alignment,
+      child: SizedBox(
+        width: size, height: size,
+        child: CustomPaint(
+          painter: _CornerPainter(isLeft: isLeft, isTop: isTop, thickness: thick),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCapturedStrip() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,9 +571,19 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _CamButton(
-                icon: Icons.photo_library_rounded,
-                onTap: _pickFromGallery,
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _CamButton(
+                    icon: Icons.photo_library_rounded,
+                    onTap: _pickFromGallery,
+                  ),
+                  const SizedBox(height: 10),
+                  _CamButton(
+                    icon: _showCuttingFrame ? Icons.grid_on_rounded : Icons.grid_off_rounded,
+                    onTap: () => setState(() => _showCuttingFrame = !_showCuttingFrame),
+                  ),
+                ],
               ),
               // Tombol shutter — nonaktif kalau sudah 3 foto
               GestureDetector(
@@ -541,9 +620,22 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                         ),
                 ),
               ),
-              _CamButton(
-                icon: Icons.cameraswitch_rounded,
-                onTap: _switchCamera,
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _CamButton(
+                    icon: Icons.cameraswitch_rounded,
+                    onTap: _switchCamera,
+                  ),
+                  const SizedBox(height: 10),
+                  if (_isFrontCamera)
+                    _CamButton(
+                      icon: _mirrorFront ? Icons.flip_rounded : Icons.flip_outlined,
+                      onTap: () => setState(() => _mirrorFront = !_mirrorFront),
+                    )
+                  else
+                    const SizedBox(width: 50, height: 50),
+                ],
               ),
             ],
           ),
@@ -571,4 +663,30 @@ class _CamButton extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─── Painter sudut kotak ─────────────────────────────────────────────────────
+class _CornerPainter extends CustomPainter {
+  final bool isLeft;
+  final bool isTop;
+  final double thickness;
+  _CornerPainter({required this.isLeft, required this.isTop, required this.thickness});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = thickness
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.square;
+    final x = isLeft ? 0.0 : size.width;
+    final y = isTop  ? 0.0 : size.height;
+    final dx = isLeft ? size.width : -size.width;
+    final dy = isTop  ? size.height : -size.height;
+    canvas.drawLine(Offset(x, y), Offset(x + dx, y), paint);
+    canvas.drawLine(Offset(x, y), Offset(x, y + dy), paint);
+  }
+
+  @override
+  bool shouldRepaint(_CornerPainter old) => false;
 }

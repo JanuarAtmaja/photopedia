@@ -67,7 +67,6 @@ class _EmailScreenState extends State<EmailScreen> {
     try {
       Uint8List? photoBytes;
       String? photoFileName;
-
       if (_attachedPhotoPath != null) {
         photoBytes = await File(_attachedPhotoPath!).readAsBytes();
         photoFileName = _attachedPhotoPath!.split('/').last;
@@ -76,13 +75,14 @@ class _EmailScreenState extends State<EmailScreen> {
       await EmailService.sendPhotoEmail(
         toName: _nameController.text.trim(),
         toEmail: _toController.text.trim(),
+        subject: _subjectController.text.trim(),
+        body: _bodyController.text.trim(),
         photoBytes: photoBytes,
         photoFileName: photoFileName,
       );
 
       // ─── Catat ke analitik: foto berhasil dikirim ──────────────────────
       if (!mounted) return;
-      // Cache state sebelum await agar tidak ada async gap
       final state = AppStateScope.of(context);
       String? photoId;
       if (_attachedPhotoPath != null) {
@@ -360,7 +360,7 @@ class _StatusModal extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             success
-                ? 'Email terkirim ke $toEmail.'
+                ? 'Aplikasi email dibuka. Kirim dari mail app kamu ke $toEmail.'
                 : (errorMessage ?? 'Gagal mengirim.'),
             textAlign: TextAlign.center,
           ),

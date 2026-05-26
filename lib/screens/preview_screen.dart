@@ -42,19 +42,19 @@ class FrameOption {
 
 const _slotsFilmStrip = [
   FrameSlot(0.055, 0.037, 0.890, 0.230),
-  FrameSlot(0.055, 0.290, 0.890, 0.230),
+  FrameSlot(0.055, 0.287, 0.890, 0.230),
   FrameSlot(0.055, 0.535, 0.890, 0.230),
 ];
 
 const _slotsY2K = [
   FrameSlot(0.055, 0.037, 0.890, 0.230),
-  FrameSlot(0.055, 0.290, 0.890, 0.230),
+  FrameSlot(0.055, 0.287, 0.890, 0.230),
   FrameSlot(0.055, 0.535, 0.890, 0.230),
 ];
 
 const _slotsMusic = [
   FrameSlot(0.055, 0.037, 0.890, 0.230),
-  FrameSlot(0.055, 0.290, 0.890, 0.230),
+  FrameSlot(0.055, 0.287, 0.890, 0.230),
   FrameSlot(0.055, 0.535, 0.890, 0.230),
 ];
 
@@ -109,6 +109,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
   FrameOption _selectedFrame = kFrames.first;
   final List<String?> _slotPaths = [null, null, null];
   bool _isSaving = false;
+  bool _isCapturingFrame = false; // sembunyikan tombol UI saat capture
   final GlobalKey _renderKey = GlobalKey();
 
   @override
@@ -139,7 +140,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   Future<void> _saveResult() async {
     if (_isSaving) return;
-    setState(() => _isSaving = true);
+    // Sembunyikan tombol UI dulu agar tidak ikut ter-capture
+    setState(() { _isSaving = true; _isCapturingFrame = true; });
+    // Tunggu satu frame agar widget rebuild tanpa tombol
+    await Future.delayed(const Duration(milliseconds: 80));
     try {
       final boundary =
           _renderKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
@@ -169,7 +173,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             .showSnackBar(SnackBar(content: Text('Gagal menyimpan: $e')));
       }
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) setState(() { _isSaving = false; _isCapturingFrame = false; });
     }
   }
 
@@ -312,10 +316,12 @@ class _PreviewScreenState extends State<PreviewScreen> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: RepaintBoundary(
-                key: _renderKey,
-                child: hasFrame ? _buildFrameView() : _buildSingleView(),
-              ),
+              child: hasFrame
+                  ? _buildFrameView()
+                  : RepaintBoundary(
+                      key: _renderKey,
+                      child: _buildSingleView(),
+                    ),
             ),
           ),
           _buildFrameSelector(),
@@ -380,61 +386,77 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
           return Stack(
             children: [
-              // Layer 0: background hitam
-              Positioned.fill(child: Container(color: Colors.black)),
+              // ── Konten yang akan di-capture (tanpa tombol UI) ──────────
+              RepaintBoundary(
+                key: _renderKey,
+                child: Stack(
+                  children: [
+                    // Layer 0: background hitam
+                    Positioned.fill(child: Container(color: Colors.black)),
 
-              // Layer 1: foto di slot
-              for (int i = 0; i < slots.length; i++)
-                Positioned(
-                  left: slots[i].leftFrac * W,
-                  top: slots[i].topFrac * H,
-                  width: slots[i].widthFrac * W,
-                  height: slots[i].heightFrac * H,
-                  child: _slotPaths[i] != null
-                      ? Image.file(
-                          File(_slotPaths[i]!),
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: Colors.grey.shade900,
-                            child: const Icon(Icons.broken_image,
-                                color: Colors.white54),
-                          ),
-                        )
-                      : GestureDetector(
-                          onTap: () => _handleSlotTap(i),
-                          child: Container(
-                            color: Colors.grey.shade900,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.add_photo_alternate_rounded,
-                                    color: Colors.white54, size: 28),
-                                const SizedBox(height: 4),
-                                Text('Foto ${i + 1}',
-                                    style: const TextStyle(
-                                        color: Colors.white38, fontSize: 11)),
-                              ],
-                            ),
-                          ),
-                        ),
-                ),
+                    // Layer 1: foto di slot
+                    for (int i = 0; i < slots.length; i++)
+                      Positioned(
+                        left: slots[i].leftFrac * W,
+                        top: slots[i].topFrac * H,
+                        width: slots[i].widthFrac * W,
+                        height: slots[i].heightFrac * H,
+                        child: _slotPaths[i] != null
+                            ? Image.file(
+                                File(_slotPaths[i]!),
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: double.infinity,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: Colors.grey.shade900,
+                                  child: const Icon(Icons.broken_image,
+                                      color: Colors.white54),
+                                ),
+                              )
+                            : Container(color: Colors.grey.shade900),
+                      ),
 
-              // Layer 2: PNG bingkai — pakai IgnorePointer supaya tidak
-              // memblok tap ke tombol di layer 3 yang ada di atasnya.
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Image.asset(
-                    _selectedFrame.assetPath!,
-                    fit: BoxFit.fill,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
+                    // Layer 2: PNG bingkai
+                    Positioned.fill(
+                      child: Image.asset(
+                        _selectedFrame.assetPath!,
+                        fit: BoxFit.fill,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
-              // Layer 3: tombol ganti + hapus per slot (di atas frame PNG)
+              // ── Layer 3: tombol ganti + hapus (DI LUAR RepaintBoundary) ─
+              // Sembunyikan saat capture agar tidak ikut tercetak
+              if (!_isCapturingFrame)
               for (int i = 0; i < slots.length; i++) ...[
+                // Placeholder tap area untuk slot kosong
+                if (_slotPaths[i] == null)
+                  Positioned(
+                    left: slots[i].leftFrac * W,
+                    top: slots[i].topFrac * H,
+                    width: slots[i].widthFrac * W,
+                    height: slots[i].heightFrac * H,
+                    child: GestureDetector(
+                      onTap: () => _handleSlotTap(i),
+                      child: Container(
+                        color: Colors.transparent,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.add_photo_alternate_rounded,
+                                color: Colors.white54, size: 28),
+                            const SizedBox(height: 4),
+                            Text('Foto ${i + 1}',
+                                style: const TextStyle(
+                                    color: Colors.white38, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 // Tombol ganti (edit) — pojok kanan atas setiap slot
                 Positioned(
                   right: (1 - slots[i].leftFrac - slots[i].widthFrac) * W + 4,
