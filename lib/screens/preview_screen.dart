@@ -173,12 +173,6 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
   }
 
-  void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: const Color(0xFF5B62B3)),
-    );
-  }
-
   Future<void> _handleSlotTap(int slotIndex) async {
     await showModalBottomSheet(
       context: context,
@@ -326,15 +320,15 @@ class _PreviewScreenState extends State<PreviewScreen> {
           ),
           _buildFrameSelector(),
           if (hasFrame)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 2, 16, 2),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, size: 13, color: Colors.grey),
-                  const SizedBox(width: 4),
+                  Icon(Icons.info_outline, size: 13, color: Colors.grey),
+                  SizedBox(width: 4),
                   Text(
                     'Ketuk foto untuk ganti/hapus',
-                    style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    style: TextStyle(color: Colors.grey, fontSize: 11),
                   ),
                 ],
               ),

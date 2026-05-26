@@ -59,18 +59,19 @@ final List<CameraFilter> kAppFilters = [
 
 img.Image _applyBW(img.Image src) {
   final out = img.Image(width: src.width, height: src.height);
-  for (int y = 0; y < src.height; y++)
+  for (int y = 0; y < src.height; y++) {
     for (int x = 0; x < src.width; x++) {
       final px = src.getPixel(x, y);
       final g = (px.r * 0.21 + px.g * 0.71 + px.b * 0.07).clamp(0,255).toInt();
       out.setPixelRgba(x, y, g, g, g, px.a.toInt());
     }
+  }
   return out;
 }
 
 img.Image _applySepia(img.Image src) {
   final out = img.Image(width: src.width, height: src.height);
-  for (int y = 0; y < src.height; y++)
+  for (int y = 0; y < src.height; y++) {
     for (int x = 0; x < src.width; x++) {
       final px = src.getPixel(x, y);
       final r = px.r.toInt(); final g = px.g.toInt(); final b = px.b.toInt();
@@ -80,22 +81,24 @@ img.Image _applySepia(img.Image src) {
         (r*0.27+g*0.53+b*0.13).clamp(0,255).toInt(),
         px.a.toInt());
     }
+  }
   return out;
 }
 
 img.Image _applyInvert(img.Image src) {
   final out = img.Image(width: src.width, height: src.height);
-  for (int y = 0; y < src.height; y++)
+  for (int y = 0; y < src.height; y++) {
     for (int x = 0; x < src.width; x++) {
       final px = src.getPixel(x, y);
       out.setPixelRgba(x, y, 255-px.r.toInt(), 255-px.g.toInt(), 255-px.b.toInt(), px.a.toInt());
     }
+  }
   return out;
 }
 
 img.Image _applyVintage(img.Image src) {
   final out = img.Image(width: src.width, height: src.height);
-  for (int y = 0; y < src.height; y++)
+  for (int y = 0; y < src.height; y++) {
     for (int x = 0; x < src.width; x++) {
       final px = src.getPixel(x, y);
       final r = px.r.toDouble(); final g = px.g.toDouble(); final b = px.b.toDouble();
@@ -105,6 +108,7 @@ img.Image _applyVintage(img.Image src) {
         (r*0.2+g*0.3+b*0.5).clamp(0,255).toInt(),
         px.a.toInt());
     }
+  }
   return out;
 }
 
@@ -280,7 +284,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
       if (!mounted) return;
       final state = AppStateScope.of(context);
-      for (final path in paths) await state.addPhoto(path);
+      for (final path in paths) {
+        await state.addPhoto(path);
+      }
 
       if (!mounted) return;
       Navigator.push(

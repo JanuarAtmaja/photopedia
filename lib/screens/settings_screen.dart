@@ -14,8 +14,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _saveOriginal = false;
   String _quality = 'Tinggi';
 
-  static const _primaryColor = Color(0xFF5B62B3);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -216,7 +214,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: Switch.adaptive(
         value: value,
         onChanged: onChanged,
-        activeColor: const Color(0xFF5B62B3),
+        activeThumbColor: const Color(0xFF5B62B3),
+        activeTrackColor: const Color(0xFF5B62B3).withValues(alpha: 0.5),
       ),
       dense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

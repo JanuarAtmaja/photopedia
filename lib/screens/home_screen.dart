@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/photo_state.dart';
 import '../widgets/photo_grid_item.dart';
 import 'preview_screen.dart';
-import '../main.dart'; // Import main.dart
+import '../main.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

@@ -6,7 +6,6 @@ import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import '../models/photo_state.dart';
 import 'camera_screen.dart' show kAppFilters, CameraFilter;
 import 'preview_screen.dart';
 
@@ -170,7 +169,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     if (filter.applyToImage != null) image = filter.applyToImage!(image);
     if (brightness != 0) {
       final out = img.Image(width: image.width, height: image.height);
-      for (int y = 0; y < image.height; y++)
+      for (int y = 0; y < image.height; y++) {
         for (int x = 0; x < image.width; x++) {
           final px = image.getPixel(x, y);
           out.setPixelRgba(x, y,
@@ -179,6 +178,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
             (px.b.toInt() + brightness).clamp(0, 255),
             px.a.toInt());
         }
+      }
       image = out;
     }
     return Uint8List.fromList(img.encodeJpg(image, quality: 92));
@@ -191,28 +191,42 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     setState(() => _isSaving = true);
     try {
       final List<String> savedPaths = [];
-      for (int i = 0; i < widget.photoPaths.length; i++) {
-        final key = _repaintKeys[i];
-        final boundary =
-            key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-        if (boundary == null) {
-          savedPaths.add(widget.photoPaths[i]);
-          continue;
-        }
-        final uiImage = await boundary.toImage(pixelRatio: 3.0);
-        final byteData =
-            await uiImage.toByteData(format: ui.ImageByteFormat.png);
-        final resultBytes = byteData!.buffer.asUint8List();
+      final dir = await getApplicationDocumentsDirectory();
 
-        final dir = await getApplicationDocumentsDirectory();
+      for (int i = 0; i < widget.photoPaths.length; i++) {
         final outPath = p.join(
             dir.path, 'edited_${DateTime.now().millisecondsSinceEpoch}_$i.png');
-        await File(outPath).writeAsBytes(resultBytes);
-        savedPaths.add(outPath);
+
+        // Foto aktif: gunakan RepaintBoundary agar overlay (teks/emoji) ikut tersimpan.
+        // Foto lain: RepaintBoundary tidak ada di render tree, simpan langsung dari
+        // _previewBytes (sudah berisi filter + brightness yang benar).
+        if (i == _activeIndex) {
+          final key = _repaintKeys[i];
+          final boundary =
+              key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+          if (boundary != null) {
+            final uiImage = await boundary.toImage(pixelRatio: 3.0);
+            final byteData =
+                await uiImage.toByteData(format: ui.ImageByteFormat.png);
+            final resultBytes = byteData!.buffer.asUint8List();
+            await File(outPath).writeAsBytes(resultBytes);
+            savedPaths.add(outPath);
+            continue;
+          }
+        }
+
+        // Fallback: tulis _previewBytes (filter sudah diterapkan) atau foto asli.
+        final bytes = _previewBytes[i] ?? _originalBytes[i];
+        if (bytes != null) {
+          await File(outPath).writeAsBytes(bytes);
+          savedPaths.add(outPath);
+        } else {
+          savedPaths.add(widget.photoPaths[i]);
+        }
       }
 
       if (!mounted) return;
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => PreviewScreen(photoPaths: savedPaths),
