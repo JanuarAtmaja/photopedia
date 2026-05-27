@@ -61,8 +61,10 @@ class _GalleryScreenState extends State<GalleryScreen>
             '${picked.length - validFiles.length} file diabaikan (format tidak valid).');
       }
 
+      // FIX: capture state before async gap
       final state = AppStateScope.of(context);
       final dir = await getApplicationDocumentsDirectory();
+      if (!mounted) return;
 
       for (final file in validFiles) {
         final savedPath = p.join(
@@ -71,6 +73,7 @@ class _GalleryScreenState extends State<GalleryScreen>
         );
         await File(file.path).copy(savedPath);
         await state.addPhoto(savedPath);
+        if (!mounted) return;
       }
 
       _showSnack('${validFiles.length} foto berhasil diunggah!',

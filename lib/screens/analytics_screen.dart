@@ -387,7 +387,7 @@ class _LogTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final timeStr = DateFormat('dd MMM yyyy, HH:mm:ss', 'id_ID')
+    final timeStr = DateFormat('dd MMM yyyy, HH:mm:ss')
         .format(log.timestamp.toLocal());
     return ListTile(
       dense: true,

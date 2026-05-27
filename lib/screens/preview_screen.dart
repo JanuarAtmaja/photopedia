@@ -242,6 +242,8 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Widget _buildSavedPhotoStrip(int slotIndex, BuildContext sheetCtx) {
+    // FIX: capture photos from widget's own context (which has AppStateScope),
+    // not sheetCtx which may not have it
     final photos = AppStateScope.of(context).photos;
     if (photos.isEmpty) return const SizedBox.shrink();
 

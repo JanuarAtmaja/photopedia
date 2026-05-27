@@ -16,17 +16,20 @@ const kSurface    = Colors.white;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  await AppState().loadFromStorage();
-  runApp(const PhotopediaApp());
+  // FIX: Gunakan singleton yang sudah di-load, bukan buat instance baru
+  final appState = AppState();
+  await appState.loadFromStorage();
+  runApp(PhotopediaApp(appState: appState));
 }
 
 class PhotopediaApp extends StatelessWidget {
-  const PhotopediaApp({super.key});
+  final AppState appState;
+  const PhotopediaApp({super.key, required this.appState});
 
   @override
   Widget build(BuildContext context) {
     return AppStateScope(
-      state: AppState(),
+      state: appState,
       child: MaterialApp(
         title: 'Photopedia',
         debugShowCheckedModeBanner: false,

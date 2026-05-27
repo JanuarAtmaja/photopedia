@@ -225,14 +225,14 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       // Kalau sudah 3 foto, langsung navigasi ke EditPhotoScreen
       if (_capturedPaths.length >= kRequiredPhotos) {
         if (!mounted) return;
-        // Simpan semua ke state dulu
+        // FIX: capture state and navigator before async operations
         final state = AppStateScope.of(context);
+        final navigator = Navigator.of(context);
         for (final path in _capturedPaths) {
           await state.addPhoto(path);
+          if (!mounted) return;
         }
-        if (!mounted) return;
-        Navigator.push(
-          context,
+        navigator.push(
           MaterialPageRoute(
             builder: (_) => EditPhotoScreen(
               photoPaths: List.from(_capturedPaths),
@@ -286,14 +286,15 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       }
 
       if (!mounted) return;
+      // FIX: capture state and navigator before async loop
       final state = AppStateScope.of(context);
+      final navigator = Navigator.of(context);
       for (final path in paths) {
         await state.addPhoto(path);
+        if (!mounted) return;
       }
 
-      if (!mounted) return;
-      Navigator.push(
-        context,
+      navigator.push(
         MaterialPageRoute(
           builder: (_) => EditPhotoScreen(photoPaths: paths),
         ),

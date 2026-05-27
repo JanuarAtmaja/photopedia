@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:photopedia/main.dart';
+import 'package:photopedia/models/photo_state.dart';
 
 void main() {
   testWidgets('PhotopediaApp memuat MainShell dengan bottom nav', (WidgetTester tester) async {
-    await tester.pumpWidget(const PhotopediaApp());
+    // FIX: PhotopediaApp sekarang membutuhkan parameter appState
+    await tester.pumpWidget(PhotopediaApp(appState: AppState()));
 
     // Verifikasi bottom navigation bar muncul
     expect(find.byType(BottomAppBar), findsAny);
@@ -15,7 +17,8 @@ void main() {
   });
 
   testWidgets('Navigasi bottom nav berfungsi', (WidgetTester tester) async {
-    await tester.pumpWidget(const PhotopediaApp());
+    // FIX: PhotopediaApp sekarang membutuhkan parameter appState
+    await tester.pumpWidget(PhotopediaApp(appState: AppState()));
 
     // Tap tab Camera
     await tester.tap(find.text('Camera'));

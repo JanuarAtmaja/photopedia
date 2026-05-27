@@ -20,7 +20,6 @@ class OverlayItem {
   Color color;
   double fontSize;
   String fontFamily;
-  // Ukuran canvas saat overlay ditambahkan — dipakai untuk scaling ke piksel gambar
   Size canvasSize;
 
   OverlayItem({
@@ -56,13 +55,9 @@ class OverlayItem {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EDIT PHOTO SCREEN
-// Terima List<String> photoPaths (3 foto).
-// User bisa overlay teks/emoji ke semua foto.
-// Setelah selesai, teruskan 3 foto ke PreviewScreen (pemilihan frame).
 // ─────────────────────────────────────────────────────────────────────────────
 
 class EditPhotoScreen extends StatefulWidget {
-  /// List path foto (biasanya 3). Wajib diisi.
   final List<String> photoPaths;
   final String initialFilterId;
 
@@ -70,7 +65,6 @@ class EditPhotoScreen extends StatefulWidget {
     super.key,
     required this.photoPaths,
     this.initialFilterId = 'none',
-    // Kept for back-compat jika ada code lain yang masih pakai photoPath tunggal
     String? photoPath,
   });
 
@@ -79,35 +73,21 @@ class EditPhotoScreen extends StatefulWidget {
 }
 
 class _EditPhotoScreenState extends State<EditPhotoScreen> {
-  // ─── Foto yang sedang aktif diedit ──────────────────────────────────────
   int _activeIndex = 0;
 
-  // Untuk setiap foto: bytes hasil filter
   late List<Uint8List?> _previewBytes;
   late List<Uint8List?> _originalBytes;
   late List<bool> _isLoading;
 
-  // Filter & brightness per-foto (index → value)
   late Map<int, CameraFilter> _activeFilters;
   late Map<int, double> _brightnessMap;
 
-  // Overlay per-foto (Map index → list overlay)
   late Map<int, List<OverlayItem>> _overlaysMap;
   String? _selectedOverlayId;
 
-  // Ukuran canvas terakhir — diupdate via LayoutBuilder
   Size _lastCanvasSize = Size.zero;
 
   bool _isSaving = false;
-
-  static const List<String> _fontFamilies = [
-    'Default', 'Serif', 'Monospace', 'Cursive', 'Fantasy',
-  ];
-
-  static const List<Color> _textColors = [
-    Colors.white, Colors.black, Colors.yellow, Colors.red,
-    Colors.cyan, Colors.green, Color(0xFFFF69B4), Color(0xFF5B62B3),
-  ];
 
   static const List<String> _emojiList = [
     '😀','😂','🥰','😎','🤩','🥳','😜','🤔',
@@ -189,12 +169,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     return Uint8List.fromList(img.encodeJpg(image, quality: 92));
   }
 
-  // ─── Render foto + overlay ke bytes menggunakan PictureRecorder ─────────
-
   Future<Uint8List> _renderPhotoWithOverlays(int index) async {
-    // Selalu render via PictureRecorder agar:
-    // 1. Selection border overlay tidak ikut tercetak
-    // 2. Semua foto (aktif maupun tidak) ter-render dengan benar
     final baseBytes = _previewBytes[index] ?? _originalBytes[index];
     if (baseBytes == null) {
       return await File(widget.photoPaths[index]).readAsBytes();
@@ -214,7 +189,6 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     canvas.drawImage(baseImage, Offset.zero, Paint());
 
     for (final item in overlays) {
-      // Scale posisi dari koordinat widget canvas → koordinat piksel gambar
       final scaleX = item.canvasSize.width > 0 ? W / item.canvasSize.width : 1.0;
       final scaleY = item.canvasSize.height > 0 ? H / item.canvasSize.height : 1.0;
       final avgScale = (scaleX + scaleY) / 2;
@@ -246,16 +220,12 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     return byteData!.buffer.asUint8List();
   }
 
-  // ─── Simpan semua foto dan navigasi ke PreviewScreen ─────────────────────
-
   Future<void> _saveAndNext() async {
     if (_isSaving) return;
-    // Hapus selection border dulu agar tidak ikut tercetak di hasil final
     setState(() {
       _isSaving = true;
       _selectedOverlayId = null;
     });
-    // Tunggu 1 frame agar widget rebuild tanpa selection border
     await Future.delayed(const Duration(milliseconds: 80));
     try {
       final List<String> savedPaths = [];
@@ -284,11 +254,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     }
   }
 
-  // ─── Overlay helpers ─────────────────────────────────────────────────────
-
   List<OverlayItem> get _currentOverlays => _overlaysMap[_activeIndex] ?? [];
-
-  Size _getCanvasSize() => _lastCanvasSize;
 
   void _deleteOverlay(String id) {
     setState(() {
@@ -306,21 +272,22 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     });
   }
 
-  // ─── Dialog tambah / edit teks ───────────────────────────────────────────
-
+  // FIX: Gunakan showDialog bukan showModalBottomSheet agar tidak ada
+  // konflik context/dispose yang menyebabkan _dependents.isEmpty assertion error.
+  // Selain itu, _TextOverlaySheet sekarang menerima viewInsets langsung sebagai
+  // parameter, bukan mengambilnya via MediaQuery dari context yang mungkin sudah
+  // tidak valid.
   Future<void> _showAddTextDialog({OverlayItem? editing}) async {
-    final result = await showModalBottomSheet<_TextOverlayResult>(
+    // Ambil keyboard insets di sini (dari context yang masih valid)
+    final result = await showDialog<_TextOverlayResult>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => _TextOverlaySheet(editing: editing),
+      barrierDismissible: true,
+      builder: (dialogCtx) => _TextOverlayDialog(editing: editing),
     );
 
     if (result == null || !mounted) return;
 
-    final cs = _getCanvasSize();
+    final cs = _lastCanvasSize;
     setState(() {
       if (editing != null) {
         _updateOverlay(editing.id, editing.copyWith(
@@ -351,7 +318,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => Column(
+      builder: (sheetCtx) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 12),
@@ -378,9 +345,10 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
               itemCount: _emojiList.length,
               itemBuilder: (_, i) => GestureDetector(
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(sheetCtx);
+                  if (!mounted) return;
                   setState(() {
-                    final es = _getCanvasSize();
+                    final es = _lastCanvasSize;
                     _overlaysMap[_activeIndex] ??= [];
                     _overlaysMap[_activeIndex]!.add(OverlayItem(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -403,14 +371,13 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // BUILD
-  // ─────────────────────────────────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A2E),
+      // FIX: resizeToAvoidBottomInset false agar tidak ada layout shift
+      // yang memicu rebuild dependency saat keyboard muncul dari dialog
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A1A2E),
         foregroundColor: Colors.white,
@@ -446,7 +413,6 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
       ),
       body: Column(
         children: [
-          // Strip pilih foto mana yang diedit
           _buildPhotoTabs(),
           Expanded(child: _buildPhotoCanvas()),
           Container(
@@ -467,7 +433,6 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     );
   }
 
-  // Tab strip atas: thumbnail 3 foto + indikator overlay
   Widget _buildPhotoTabs() {
     return Container(
       height: 72,
@@ -509,7 +474,6 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
                             child: const Icon(Icons.image,
                                 color: Colors.white38, size: 20)),
                   ),
-                  // Badge jumlah overlay
                   if (overlayCount > 0)
                     Positioned(
                       top: 2, right: 2,
@@ -550,14 +514,11 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
               style: TextStyle(color: Colors.red)));
     }
 
-    // ValueKey memaksa Flutter rebuild widget baru saat tab diganti
-    // sehingga tidak ada konflik key antar foto
     return GestureDetector(
       key: ValueKey(_activeIndex),
       onTap: () => setState(() => _selectedOverlayId = null),
       child: LayoutBuilder(
         builder: (ctx, constraints) {
-          // Simpan ukuran canvas (bounded oleh Expanded parent)
           _lastCanvasSize = Size(constraints.maxWidth, constraints.maxHeight);
           return Stack(
             alignment: Alignment.center,
@@ -618,7 +579,6 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
               ),
             ),
             if (isSelected) ...[
-              // Hapus
               Positioned(
                 top: -10, right: -10,
                 child: GestureDetector(
@@ -631,7 +591,6 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
                   ),
                 ),
               ),
-              // Edit (khusus teks)
               if (item.type == 'text')
                 Positioned(
                   top: -10, left: -10,
@@ -654,6 +613,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
 
   Widget _buildSelectedLayerPanel() {
     final list = _currentOverlays;
+    if (list.isEmpty) return const SizedBox.shrink();
     final item = list.firstWhere(
       (o) => o.id == _selectedOverlayId,
       orElse: () => list.first,
@@ -700,7 +660,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
 
   Widget _buildFilterRow() {
     return SizedBox(
-      height: 96, // dinaikkan dari 90 agar label + border aktif tidak overflow
+      height: 96,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -853,19 +813,23 @@ class _TextOverlayResult {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// BOTTOM SHEET TEKS — StatefulWidget mandiri, tidak bergantung pada
-// context parent → aman dari _dependents.isEmpty assertion error
+// FIX: Ganti showModalBottomSheet → Dialog biasa agar terhindar dari
+// _dependents.isEmpty assertion error yang terjadi ketika keyboard muncul
+// dan BottomSheet mencoba resize layout dari context yang sudah di-dispose.
+//
+// _TextOverlayDialog adalah AlertDialog penuh yang punya context sendiri,
+// sehingga MediaQuery.of(context) di dalamnya selalu valid.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _TextOverlaySheet extends StatefulWidget {
+class _TextOverlayDialog extends StatefulWidget {
   final OverlayItem? editing;
-  const _TextOverlaySheet({this.editing});
+  const _TextOverlayDialog({this.editing});
 
   @override
-  State<_TextOverlaySheet> createState() => _TextOverlaySheetState();
+  State<_TextOverlayDialog> createState() => _TextOverlayDialogState();
 }
 
-class _TextOverlaySheetState extends State<_TextOverlaySheet> {
+class _TextOverlayDialogState extends State<_TextOverlayDialog> {
   late TextEditingController _ctrl;
   late Color _color;
   late String _font;
@@ -896,164 +860,173 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final txt = _ctrl.text;
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20, right: 20, top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+    // FIX: Gunakan Dialog + SingleChildScrollView + viewInsets dari context Dialog
+    // yang selalu valid — tidak ada dependensi ke context parent yang bisa dispose.
+    return Dialog(
+      insetPadding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        top: 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40, height: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              widget.editing != null ? 'Edit Teks' : 'Tambah Teks',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 14),
+
+            // Live preview
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+                color: Colors.grey.shade900,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                _ctrl.text.isEmpty ? 'Preview teks...' : _ctrl.text,
+                style: TextStyle(
+                  fontFamily: _font == 'Default' ? null : _font,
+                  fontSize: _size.clamp(14.0, 36.0),
+                  color: _ctrl.text.isEmpty ? Colors.grey : _color,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            widget.editing != null ? 'Edit Teks' : 'Tambah Teks',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
-          // Live preview
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade900,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              txt.isEmpty ? 'Preview teks...' : txt,
-              style: TextStyle(
-                fontFamily: _font == 'Default' ? null : _font,
-                fontSize: _size.clamp(14.0, 36.0),
-                color: txt.isEmpty ? Colors.grey : _color,
-                fontWeight: FontWeight.bold,
+            TextField(
+              autofocus: widget.editing == null,
+              controller: _ctrl,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: 'Ketik teks kamu...',
+                filled: true,
+                fillColor: const Color(0xFFF5F0FF),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-          TextField(
-            autofocus: widget.editing == null,
-            controller: _ctrl,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: 'Ketik teks kamu...',
-              filled: true,
-              fillColor: const Color(0xFFF5F0FF),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          const Text('Warna Teks',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 38,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: _textColors.map((c) {
-                final isSel = _color == c;
-                return GestureDetector(
-                  onTap: () => setState(() => _color = c),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    margin: const EdgeInsets.only(right: 8),
-                    width: isSel ? 36 : 30,
-                    height: isSel ? 36 : 30,
-                    decoration: BoxDecoration(
-                      color: c,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: isSel ? const Color(0xFF5B62B3) : Colors.grey.shade300,
-                        width: isSel ? 3 : 1,
+            const Text('Warna Teks',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 38,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: _textColors.map((c) {
+                  final isSel = _color == c;
+                  return GestureDetector(
+                    onTap: () => setState(() => _color = c),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      margin: const EdgeInsets.only(right: 8),
+                      width: isSel ? 36 : 30,
+                      height: isSel ? 36 : 30,
+                      decoration: BoxDecoration(
+                        color: c,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSel ? const Color(0xFF5B62B3) : Colors.grey.shade300,
+                          width: isSel ? 3 : 1,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          const Text('Jenis Font',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: _fontFamilies.map((font) {
-                final isSel = _font == font;
-                return GestureDetector(
-                  onTap: () => setState(() => _font = font),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    margin: const EdgeInsets.only(right: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSel ? const Color(0xFF5B62B3) : const Color(0xFFEEEDF8),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      font,
-                      style: TextStyle(
-                        fontFamily: font == 'Default' ? null : font,
-                        color: isSel ? Colors.white : const Color(0xFF5B62B3),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+            const Text('Jenis Font',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: _fontFamilies.map((font) {
+                  final isSel = _font == font;
+                  return GestureDetector(
+                    onTap: () => setState(() => _font = font),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSel ? const Color(0xFF5B62B3) : const Color(0xFFEEEDF8),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        font,
+                        style: TextStyle(
+                          fontFamily: font == 'Default' ? null : font,
+                          color: isSel ? Colors.white : const Color(0xFF5B62B3),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          const Text('Ukuran',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-          Slider(
-            value: _size,
-            min: 14, max: 64, divisions: 25,
-            activeColor: const Color(0xFF5B62B3),
-            label: _size.toInt().toString(),
-            onChanged: (v) => setState(() => _size = v),
-          ),
-          const SizedBox(height: 8),
-
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5B62B3)),
-              onPressed: () {
-                final t = _ctrl.text.trim();
-                if (t.isEmpty) return;
-                Navigator.pop(context, _TextOverlayResult(
-                  text: t,
-                  color: _color,
-                  fontSize: _size,
-                  fontFamily: _font,
-                ));
-              },
-              child: Text(widget.editing != null ? 'Simpan' : 'Tambahkan'),
+            const Text('Ukuran',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            Slider(
+              value: _size,
+              min: 14, max: 64, divisions: 25,
+              activeColor: const Color(0xFF5B62B3),
+              label: _size.toInt().toString(),
+              onChanged: (v) => setState(() => _size = v),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5B62B3)),
+                onPressed: () {
+                  final t = _ctrl.text.trim();
+                  if (t.isEmpty) return;
+                  Navigator.pop(context, _TextOverlayResult(
+                    text: t,
+                    color: _color,
+                    fontSize: _size,
+                    fontFamily: _font,
+                  ));
+                },
+                child: Text(widget.editing != null ? 'Simpan' : 'Tambahkan',
+                    style: const TextStyle(color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
