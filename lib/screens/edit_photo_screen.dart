@@ -272,17 +272,16 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     });
   }
 
-  // FIX: Gunakan showDialog bukan showModalBottomSheet agar tidak ada
-  // konflik context/dispose yang menyebabkan _dependents.isEmpty assertion error.
-  // Selain itu, _TextOverlaySheet sekarang menerima viewInsets langsung sebagai
-  // parameter, bukan mengambilnya via MediaQuery dari context yang mungkin sudah
-  // tidak valid.
+  // Gunakan showModalBottomSheet dengan isScrollControlled: true
+  // Flutter otomatis naikan sheet saat keyboard muncul via viewInsets
   Future<void> _showAddTextDialog({OverlayItem? editing}) async {
-    // Ambil keyboard insets di sini (dari context yang masih valid)
-    final result = await showDialog<_TextOverlayResult>(
+    final result = await showModalBottomSheet<_TextOverlayResult>(
       context: context,
-      barrierDismissible: true,
-      builder: (dialogCtx) => _TextOverlayDialog(editing: editing),
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sheetCtx) => _TextOverlaySheet(editing: editing),
     );
 
     if (result == null || !mounted) return;
@@ -813,23 +812,20 @@ class _TextOverlayResult {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FIX: Ganti showModalBottomSheet → Dialog biasa agar terhindar dari
-// _dependents.isEmpty assertion error yang terjadi ketika keyboard muncul
-// dan BottomSheet mencoba resize layout dari context yang sudah di-dispose.
-//
-// _TextOverlayDialog adalah AlertDialog penuh yang punya context sendiri,
-// sehingga MediaQuery.of(context) di dalamnya selalu valid.
+// _TextOverlaySheet — StatefulWidget mandiri sebagai bottom sheet
+// isScrollControlled: true pada showModalBottomSheet memastikan Flutter
+// otomatis menggeser sheet ke atas saat keyboard muncul via viewInsets.bottom
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _TextOverlayDialog extends StatefulWidget {
+class _TextOverlaySheet extends StatefulWidget {
   final OverlayItem? editing;
-  const _TextOverlayDialog({this.editing});
+  const _TextOverlaySheet({this.editing});
 
   @override
-  State<_TextOverlayDialog> createState() => _TextOverlayDialogState();
+  State<_TextOverlaySheet> createState() => _TextOverlaySheetState();
 }
 
-class _TextOverlayDialogState extends State<_TextOverlayDialog> {
+class _TextOverlaySheetState extends State<_TextOverlaySheet> {
   late TextEditingController _ctrl;
   late Color _color;
   late String _font;
@@ -860,18 +856,14 @@ class _TextOverlayDialogState extends State<_TextOverlayDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Gunakan Dialog + SingleChildScrollView + viewInsets dari context Dialog
-    // yang selalu valid — tidak ada dependensi ke context parent yang bisa dispose.
-    return Dialog(
-      insetPadding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        top: 24,
+    // viewInsets.bottom sudah di-handle oleh showModalBottomSheet
+    // dengan isScrollControlled:true — tidak perlu tambah manual
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20, right: 20, top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

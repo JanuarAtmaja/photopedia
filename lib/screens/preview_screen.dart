@@ -138,6 +138,40 @@ class _PreviewScreenState extends State<PreviewScreen> {
     }
   }
 
+  Future<void> _captureAndSendEmail() async {
+    if (_isSaving) return;
+    setState(() { _isSaving = true; _isCapturingFrame = true; });
+    await Future.delayed(const Duration(milliseconds: 80));
+    try {
+      final boundary =
+          _renderKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) throw Exception('Render boundary tidak ditemukan.');
+      final uiImage = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
+      final bytes = byteData!.buffer.asUint8List();
+
+      final dir = await getApplicationDocumentsDirectory();
+      final outPath = p.join(
+          dir.path, 'email_${DateTime.now().millisecondsSinceEpoch}.png');
+      await File(outPath).writeAsBytes(bytes);
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EmailScreen(preSelectedPhotoPath: outPath),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Gagal memproses foto: $e')));
+      }
+    } finally {
+      if (mounted) setState(() { _isSaving = false; _isCapturingFrame = false; });
+    }
+  }
+
   Future<void> _saveResult() async {
     if (_isSaving) return;
     // Sembunyikan tombol UI dulu agar tidak ikut ter-capture
@@ -366,7 +400,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
         borderRadius: BorderRadius.circular(20),
         child: Image.file(
           File(widget.photoPaths.isNotEmpty ? widget.photoPaths.first : ""),
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           width: double.infinity,
           errorBuilder: (_, __, ___) => const Center(
               child: Icon(Icons.broken_image, color: Colors.grey, size: 64)),
@@ -616,13 +650,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      EmailScreen(preSelectedPhotoPath: widget.photoPaths.isNotEmpty ? widget.photoPaths.first : null),
-                ),
-              ),
+              onPressed: _isSaving ? null : _captureAndSendEmail,
               icon: const Icon(Icons.email_rounded),
               label: const Text('Kirim via Email'),
               style: ElevatedButton.styleFrom(
