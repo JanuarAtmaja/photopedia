@@ -98,9 +98,12 @@ class _GalleryScreenState extends State<GalleryScreen>
   @override
   Widget build(BuildContext context) {
     final state = AppStateScope.of(context);
+    final isDark = ThemeModeScope.of(context);
+    final bg = isDark ? kBackgroundDark : const Color(0xFFEDE2E0);
     return Scaffold(
-      backgroundColor: const Color(0xFFEDE2E0),
+      backgroundColor: bg,
       appBar: AppBar(
+        backgroundColor: bg,
         title: const Text('Galeri'),
         centerTitle: false,
         leading: IconButton(

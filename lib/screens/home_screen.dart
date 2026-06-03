@@ -10,6 +10,10 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = AppStateScope.of(context);
+    final isDark = ThemeModeScope.of(context);
+    final cardBg = isDark ? kSurfaceDark : Colors.white;
+    final textColor = isDark ? Colors.white : const Color(0xFF2D2D2D);
+    final subColor = isDark ? Colors.white60 : Colors.grey;
 
     return Scaffold(
       appBar: AppBar(
@@ -34,7 +38,7 @@ class HomeScreen extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: cardBg,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(color: const Color(0xFF5B62B3).withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 4)),
@@ -51,10 +55,10 @@ class HomeScreen extends StatelessWidget {
                           const Text('PHOTOPEDIA',
                               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF5B62B3), letterSpacing: 1.2)),
                           const SizedBox(height: 10),
-                          const Text(
+                          Text(
                             'Photobooth seru yang bikin momen kamu jadi lebih hidup dan estetik. Akses kamera dan galeri dengan cepat.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
+                            style: TextStyle(fontSize: 13, color: subColor, height: 1.5),
                           ),
                           const SizedBox(height: 20),
                           SizedBox(
@@ -88,7 +92,7 @@ class HomeScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Foto Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D))),
+                        Text('Foto Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
                         TextButton(
                           onPressed: () => _navigateToTab(context, 2),
                           child: const Text('Lihat Semua', style: TextStyle(color: Color(0xFF5B62B3))),
@@ -122,15 +126,8 @@ class HomeScreen extends StatelessWidget {
   }
 
   void _navigateToTab(BuildContext context, int index) {
-    final notifier = MainTabNotifier.of(context);
+    final notifier = MainTabNotifier.maybeOf(context);
     notifier?.changeTab(index);
   }
 }
 
-class MainTabNotifier extends InheritedWidget {
-  final void Function(int) changeTab;
-  const MainTabNotifier({super.key, required this.changeTab, required super.child});
-  static MainTabNotifier? of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<MainTabNotifier>();
-  @override
-  bool updateShouldNotify(MainTabNotifier old) => false;
-}

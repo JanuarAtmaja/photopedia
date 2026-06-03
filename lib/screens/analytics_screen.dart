@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/analytics_service.dart';
+import '../main.dart';
 
 /// AnalyticsDashboard menampilkan statistik aktivitas pengguna:
 /// jumlah klik foto, foto diambil, foto dikirim, foto dihapus,
@@ -54,93 +55,20 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     }
   }
 
-  // FIX 6: Drawer lengkap yang sama dengan MainShell
-  Widget _buildDrawer() {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Color(0xFF5B62B3)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                const CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 30,
-                  child: Icon(Icons.person, color: Color(0xFF5B62B3), size: 35),
-                ),
-                const SizedBox(height: 10),
-                const Text('Photopedia User',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                Text('user@photopedia.com',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14)),
-              ],
-            ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home_rounded, color: Colors.grey),
-            title: const Text('Beranda'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.of(context).popUntil((r) => r.isFirst);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.camera_alt_rounded, color: Colors.grey),
-            title: const Text('Camera'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.of(context).popUntil((r) => r.isFirst);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.photo_library_rounded, color: Colors.grey),
-            title: const Text('Gallery'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.of(context).popUntil((r) => r.isFirst);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.email_rounded, color: Colors.grey),
-            title: const Text('Email'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.of(context).popUntil((r) => r.isFirst);
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.bar_chart_rounded, color: Color(0xFF5B62B3)),
-            title: const Text('Analitik Pengguna',
-                style: TextStyle(color: Color(0xFF5B62B3), fontWeight: FontWeight.bold)),
-            selected: true,
-            selectedTileColor: const Color(0xFF5B62B3).withValues(alpha: 0.1),
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings_rounded),
-            title: const Text('Settings'),
-            onTap: () => Navigator.pop(context),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeModeScope.of(context);
+    final bg = isDark ? kBackgroundDark : const Color(0xFFEDE2E0);
     return Scaffold(
-      backgroundColor: const Color(0xFFEDE2E0),
-      // FIX 6: Drawer built-in agar bisa dibuka di halaman ini
-      drawer: _buildDrawer(),
+      backgroundColor: bg,
+      drawer: buildAppDrawer(context, currentRoute: 'analytics'),
       appBar: AppBar(
-        title: const Text('Analitik Pengguna'),
+        backgroundColor: bg,
+        title: const Text('Analitik Pengguna',
+            style: TextStyle(color: kPrimary, fontWeight: FontWeight.bold)),
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu_rounded),
+            icon: const Icon(Icons.menu_rounded, color: kPrimary),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
@@ -169,12 +97,12 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Ringkasan Aktivitas',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D2D2D),
+                            color: isDark ? Colors.white : const Color(0xFF2D2D2D),
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -190,25 +118,25 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                               label: 'Foto Diambil',
                               value: _stats!.totalPhotosTaken,
                               icon: Icons.camera_alt_rounded,
-                              color: _primary,
+                              color: _primary, isDark: isDark,
                             ),
                             _StatCard(
                               label: 'Foto Diklik',
                               value: _stats!.totalPhotosClicked,
                               icon: Icons.touch_app_rounded,
-                              color: Colors.teal,
+                              color: Colors.teal, isDark: isDark,
                             ),
                             _StatCard(
                               label: 'Foto Dikirim',
                               value: _stats!.totalPhotosSent,
                               icon: Icons.send_rounded,
-                              color: Colors.green,
+                              color: Colors.green, isDark: isDark,
                             ),
                             _StatCard(
                               label: 'Foto Dihapus',
                               value: _stats!.totalPhotosDeleted,
                               icon: Icons.delete_rounded,
-                              color: Colors.red,
+                              color: Colors.red, isDark: isDark,
                             ),
                           ],
                         ),
@@ -240,7 +168,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                                 width: double.infinity,
                                 padding: const EdgeInsets.all(32),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: isDark ? kSurfaceDark : Colors.white,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Column(
@@ -262,10 +190,9 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                               )
                             : Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: isDark ? kSurfaceDark : Colors.white,
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                // FIX 7: clip agar radius terlihat
                                 clipBehavior: Clip.hardEdge,
                                 child: Column(
                                   children: [
@@ -295,12 +222,14 @@ class _StatCard extends StatelessWidget {
   final int value;
   final IconData icon;
   final Color color;
+  final bool isDark;
 
   const _StatCard({
     required this.label,
     required this.value,
     required this.icon,
     required this.color,
+    this.isDark = false,
   });
 
   @override
@@ -308,7 +237,7 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? kSurfaceDark : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

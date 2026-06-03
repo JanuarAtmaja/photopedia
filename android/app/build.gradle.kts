@@ -16,7 +16,8 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        // Warning jvmTarget diperbaiki di sini
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -35,6 +36,13 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    // Error script compilation diperbaiki di sini menggunakan casting Kotlin
+    applicationVariants.all {
+        outputs.all {
+            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = "Photopedia.apk"
         }
     }
 }

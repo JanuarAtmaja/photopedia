@@ -16,11 +16,11 @@ class OverlayItem {
   final String id;
   final String type; // 'text' | 'emoji'
   String content;
-  Offset position;
+  Offset position;    // posisi relatif terhadap area foto (dalam foto-coords)
   Color color;
   double fontSize;
   String fontFamily;
-  Size canvasSize;
+  Size canvasSize;    // ukuran canvas saat item ditambahkan
 
   OverlayItem({
     required this.id,
@@ -85,7 +85,12 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
   late Map<int, List<OverlayItem>> _overlaysMap;
   String? _selectedOverlayId;
 
+  // ── FIX Bug 2: track canvas & image rect untuk koordinat akurat ──
   Size _lastCanvasSize = Size.zero;
+  Rect _lastImageRect = Rect.zero; // area gambar yang sebenarnya tampil (BoxFit.contain)
+
+  // Cache dimensi gambar per-index (diisi saat load)
+  final Map<int, Size> _imageSizeCache = {};
 
   bool _isSaving = false;
 
@@ -125,6 +130,14 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     try {
       final bytes = await File(widget.photoPaths[index]).readAsBytes();
       _originalBytes[index] = bytes;
+
+      // Cache dimensi gambar untuk koordinat overlay yang akurat
+      final decoded = img.decodeImage(bytes);
+      if (decoded != null) {
+        _imageSizeCache[index] =
+            Size(decoded.width.toDouble(), decoded.height.toDouble());
+      }
+
       final preview = await _computeFilter(
           bytes, _activeFilters[index]!, _brightnessMap[index]!.toInt());
       if (mounted) {
@@ -169,6 +182,32 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     return Uint8List.fromList(img.encodeJpg(image, quality: 92));
   }
 
+  // ── FIX Bug 1: hitung Rect gambar aktual di dalam canvas (BoxFit.contain) ──
+  // Menggunakan dimensi yang di-cache saat loadPhoto agar bisa dipanggil secara sinkron.
+  Rect _computeImageRect(Size canvasSize, [int? index]) {
+    final imgSize = _imageSizeCache[index ?? _activeIndex];
+    if (imgSize == null || imgSize.width == 0 || imgSize.height == 0) {
+      // Fallback: anggap gambar memenuhi canvas
+      return Rect.fromLTWH(0, 0, canvasSize.width, canvasSize.height);
+    }
+
+    final canvasAR = canvasSize.width / canvasSize.height;
+    final imgAR    = imgSize.width / imgSize.height;
+
+    double renderedW, renderedH;
+    if (imgAR > canvasAR) {
+      renderedW = canvasSize.width;
+      renderedH = canvasSize.width / imgAR;
+    } else {
+      renderedH = canvasSize.height;
+      renderedW = canvasSize.height * imgAR;
+    }
+
+    final left = (canvasSize.width  - renderedW) / 2;
+    final top  = (canvasSize.height - renderedH) / 2;
+    return Rect.fromLTWH(left, top, renderedW, renderedH);
+  }
+
   Future<Uint8List> _renderPhotoWithOverlays(int index) async {
     final baseBytes = _previewBytes[index] ?? _originalBytes[index];
     if (baseBytes == null) {
@@ -189,8 +228,23 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     canvas.drawImage(baseImage, Offset.zero, Paint());
 
     for (final item in overlays) {
-      final scaleX = item.canvasSize.width > 0 ? W / item.canvasSize.width : 1.0;
-      final scaleY = item.canvasSize.height > 0 ? H / item.canvasSize.height : 1.0;
+      // canvasSize tersimpan saat overlay ditambahkan; gunakan untuk menghitung
+      // imageRect di canvas tersebut. Jika belum ada, fallback ke full gambar.
+      final Rect iRect;
+      if (item.canvasSize != Size.zero) {
+        iRect = _computeImageRect(item.canvasSize, index);
+      } else {
+        // Fallback: anggap posisi tersimpan dalam koordinat gambar langsung
+        iRect = Rect.fromLTWH(0, 0, W, H);
+      }
+
+      // Offset posisi relatif terhadap pojok kiri atas imageRect
+      final relX = item.position.dx - iRect.left;
+      final relY = item.position.dy - iRect.top;
+
+      // Scale ke koordinat gambar asli
+      final scaleX = iRect.width  > 0 ? W / iRect.width  : 1.0;
+      final scaleY = iRect.height > 0 ? H / iRect.height : 1.0;
       final avgScale = (scaleX + scaleY) / 2;
 
       final textStyle = ui.TextStyle(
@@ -208,10 +262,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
         ..addText(item.content);
       final para = builder.build()
         ..layout(const ui.ParagraphConstraints(width: double.infinity));
-      canvas.drawParagraph(
-        para,
-        Offset(item.position.dx * scaleX, item.position.dy * scaleY),
-      );
+      canvas.drawParagraph(para, Offset(relX * scaleX, relY * scaleY));
     }
 
     final picture = recorder.endRecording();
@@ -263,17 +314,14 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     });
   }
 
-  void _updateOverlay(String id, OverlayItem updated) {
-    setState(() {
-      final list = _overlaysMap[_activeIndex];
-      if (list == null) return;
-      final idx = list.indexWhere((o) => o.id == id);
-      if (idx != -1) list[idx] = updated;
-    });
+  // ── FIX Bug 2: update overlay langsung tanpa double-setState ──
+  void _updateOverlayDirect(String id, OverlayItem updated) {
+    final list = _overlaysMap[_activeIndex];
+    if (list == null) return;
+    final idx = list.indexWhere((o) => o.id == id);
+    if (idx != -1) list[idx] = updated;
   }
 
-  // Gunakan showModalBottomSheet dengan isScrollControlled: true
-  // Flutter otomatis naikan sheet saat keyboard muncul via viewInsets
   Future<void> _showAddTextDialog({OverlayItem? editing}) async {
     final result = await showModalBottomSheet<_TextOverlayResult>(
       context: context,
@@ -289,7 +337,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     final cs = _lastCanvasSize;
     setState(() {
       if (editing != null) {
-        _updateOverlay(editing.id, editing.copyWith(
+        _updateOverlayDirect(editing.id, editing.copyWith(
           content: result.text,
           color: result.color,
           fontSize: result.fontSize,
@@ -301,7 +349,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           type: 'text',
           content: result.text,
-          position: const Offset(60, 60),
+          position: Offset(_lastImageRect.left + 60, _lastImageRect.top + 60),
           color: result.color,
           fontSize: result.fontSize,
           fontFamily: result.fontFamily,
@@ -347,15 +395,19 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
                   Navigator.pop(sheetCtx);
                   if (!mounted) return;
                   setState(() {
-                    final es = _lastCanvasSize;
+                    final cs = _lastCanvasSize;
                     _overlaysMap[_activeIndex] ??= [];
                     _overlaysMap[_activeIndex]!.add(OverlayItem(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
                       type: 'emoji',
                       content: _emojiList[i],
-                      position: const Offset(100, 100),
+                      // posisi awal di tengah imageRect
+                      position: Offset(
+                        _lastImageRect.left + _lastImageRect.width  / 2 - 20,
+                        _lastImageRect.top  + _lastImageRect.height / 2 - 20,
+                      ),
                       fontSize: 40,
-                      canvasSize: es,
+                      canvasSize: cs,
                     ));
                   });
                 },
@@ -374,12 +426,14 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A2E),
-      // FIX: resizeToAvoidBottomInset false agar tidak ada layout shift
-      // yang memicu rebuild dependency saat keyboard muncul dari dialog
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A1A2E),
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white),
+          onPressed: () => Navigator.maybePop(context),
+        ),
         title: Text(
           'Edit Foto ${_activeIndex + 1}/${widget.photoPaths.length}',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -518,12 +572,16 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
       onTap: () => setState(() => _selectedOverlayId = null),
       child: LayoutBuilder(
         builder: (ctx, constraints) {
-          _lastCanvasSize = Size(constraints.maxWidth, constraints.maxHeight);
+          final canvasSize = Size(constraints.maxWidth, constraints.maxHeight);
+          _lastCanvasSize = canvasSize;
+          // ── FIX Bug 1: hitung imageRect setiap frame ──
+          _lastImageRect = _computeImageRect(canvasSize);
+
           return Stack(
             alignment: Alignment.center,
             children: [
               Image.memory(bytes, fit: BoxFit.contain),
-              ..._currentOverlays.map(_buildDraggableOverlay),
+              ..._currentOverlays.map((item) => _buildDraggableOverlay(item)),
             ],
           );
         },
@@ -533,80 +591,23 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
 
   Widget _buildDraggableOverlay(OverlayItem item) {
     final isSelected = _selectedOverlayId == item.id;
-    return Positioned(
-      left: item.position.dx,
-      top: item.position.dy,
-      child: GestureDetector(
-        onTap: () => setState(() {
-          _selectedOverlayId = isSelected ? null : item.id;
-        }),
-        onPanUpdate: (d) => _updateOverlay(
-          item.id,
-          item.copyWith(position: item.position + d.delta),
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: isSelected
-                      ? const Color(0xFF5B62B3)
-                      : Colors.white.withValues(alpha: 0.3),
-                  width: isSelected ? 2 : 1,
-                ),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                item.content,
-                style: TextStyle(
-                  fontSize: item.fontSize,
-                  color: item.type == 'emoji' ? null : item.color,
-                  fontFamily:
-                      item.fontFamily == 'Default' ? null : item.fontFamily,
-                  fontWeight: FontWeight.bold,
-                  shadows: item.type == 'text'
-                      ? const [
-                          Shadow(
-                              color: Colors.black54,
-                              blurRadius: 4,
-                              offset: Offset(1, 1))
-                        ]
-                      : null,
-                ),
-              ),
-            ),
-            if (isSelected) ...[
-              Positioned(
-                top: -10, right: -10,
-                child: GestureDetector(
-                  onTap: () => _deleteOverlay(item.id),
-                  child: Container(
-                    width: 22, height: 22,
-                    decoration: const BoxDecoration(
-                        color: Colors.red, shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: Colors.white, size: 14),
-                  ),
-                ),
-              ),
-              if (item.type == 'text')
-                Positioned(
-                  top: -10, left: -10,
-                  child: GestureDetector(
-                    onTap: () => _showAddTextDialog(editing: item),
-                    child: Container(
-                      width: 22, height: 22,
-                      decoration: const BoxDecoration(
-                          color: Color(0xFF5B62B3), shape: BoxShape.circle),
-                      child: const Icon(Icons.edit, color: Colors.white, size: 13),
-                    ),
-                  ),
-                ),
-            ],
-          ],
-        ),
-      ),
+
+    return _DraggableOverlayWrapper(
+      key: ValueKey(item.id),
+      item: item,
+      isSelected: isSelected,
+      onTap: () => setState(() {
+        _selectedOverlayId = isSelected ? null : item.id;
+      }),
+      // Dipanggil HANYA saat drag/scale selesai (finger up) — setState mahal
+      onDragEnd: (updatedItem) {
+        _updateOverlayDirect(item.id, updatedItem);
+        setState(() {}); // rebuild sekali saat selesai
+      },
+      onDelete: () => _deleteOverlay(item.id),
+      onEdit: item.type == 'text'
+          ? () => _showAddTextDialog(editing: item)
+          : null,
     );
   }
 
@@ -759,6 +760,163 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// _DraggableOverlayWrapper
+// Menggunakan local state untuk drag/scale → hanya widget ini yang rebuild
+// setiap frame, bukan seluruh canvas. setState parent dipanggil SEKALI
+// saat finger diangkat (onDragEnd) untuk sync ke model.
+// ─────────────────────────────────────────────────────────────────────────────
+class _DraggableOverlayWrapper extends StatefulWidget {
+  final OverlayItem item;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final void Function(OverlayItem updated) onDragEnd;
+  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+
+  const _DraggableOverlayWrapper({
+    super.key,
+    required this.item,
+    required this.isSelected,
+    required this.onTap,
+    required this.onDragEnd,
+    required this.onDelete,
+    this.onEdit,
+  });
+
+  @override
+  State<_DraggableOverlayWrapper> createState() => _DraggableOverlayWrapperState();
+}
+
+class _DraggableOverlayWrapperState extends State<_DraggableOverlayWrapper> {
+  // Posisi & fontSize disimpan lokal selama gesture berlangsung
+  late Offset _pos;
+  late double _fontSize;
+  double _fontSizeAtStart = 28.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pos = widget.item.position;
+    _fontSize = widget.item.fontSize;
+  }
+
+  @override
+  void didUpdateWidget(_DraggableOverlayWrapper old) {
+    super.didUpdateWidget(old);
+    // Sync jika parent update item (misal: setelah edit teks)
+    if (old.item.position != widget.item.position) _pos = widget.item.position;
+    if (old.item.fontSize != widget.item.fontSize) _fontSize = widget.item.fontSize;
+  }
+
+  void _commitToParent() {
+    widget.onDragEnd(widget.item.copyWith(
+      position: _pos,
+      fontSize: _fontSize,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = widget.isSelected;
+    final item = widget.item;
+
+    return Positioned(
+      left: _pos.dx,
+      top: _pos.dy,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        onScaleStart: (details) {
+          _fontSizeAtStart = _fontSize;
+        },
+        onScaleUpdate: (details) {
+          setState(() {
+            // 1 jari = pan
+            if (details.pointerCount == 1) {
+              _pos = _pos + details.focalPointDelta;
+            }
+            // 2 jari = scale, pakai rasio langsung dari details.scale
+            if (details.pointerCount >= 2) {
+              _fontSize = (_fontSizeAtStart * details.scale).clamp(10.0, 120.0);
+            }
+          });
+        },
+        onScaleEnd: (_) => _commitToParent(),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFF5B62B3)
+                      : Colors.white.withValues(alpha: 0.3),
+                  width: isSelected ? 2 : 1,
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                item.content,
+                style: TextStyle(
+                  fontSize: _fontSize,
+                  color: item.type == 'emoji' ? null : item.color,
+                  fontFamily: item.fontFamily == 'Default' ? null : item.fontFamily,
+                  fontWeight: FontWeight.bold,
+                  shadows: item.type == 'text'
+                      ? const [Shadow(color: Colors.black54, blurRadius: 4,
+                          offset: Offset(1, 1))]
+                      : null,
+                ),
+              ),
+            ),
+            if (isSelected) ...[
+              Positioned(
+                top: -10, right: -10,
+                child: GestureDetector(
+                  onTap: widget.onDelete,
+                  child: Container(
+                    width: 22, height: 22,
+                    decoration: const BoxDecoration(
+                        color: Colors.red, shape: BoxShape.circle),
+                    child: const Icon(Icons.close, color: Colors.white, size: 14),
+                  ),
+                ),
+              ),
+              if (widget.onEdit != null)
+                Positioned(
+                  top: -10, left: -10,
+                  child: GestureDetector(
+                    onTap: widget.onEdit,
+                    child: Container(
+                      width: 22, height: 22,
+                      decoration: const BoxDecoration(
+                          color: Color(0xFF5B62B3), shape: BoxShape.circle),
+                      child: const Icon(Icons.edit, color: Colors.white, size: 13),
+                    ),
+                  ),
+                ),
+              // Indikator scale
+              Positioned(
+                bottom: -10, right: -10,
+                child: Container(
+                  width: 22, height: 22,
+                  decoration: BoxDecoration(
+                      color: Colors.black54, shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white30)),
+                  child: const Icon(Icons.zoom_out_map_rounded,
+                      color: Colors.white70, size: 13),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
 class _ToolbarBtn extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -812,9 +970,7 @@ class _TextOverlayResult {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _TextOverlaySheet — StatefulWidget mandiri sebagai bottom sheet
-// isScrollControlled: true pada showModalBottomSheet memastikan Flutter
-// otomatis menggeser sheet ke atas saat keyboard muncul via viewInsets.bottom
+// _TextOverlaySheet
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TextOverlaySheet extends StatefulWidget {
@@ -856,8 +1012,6 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
 
   @override
   Widget build(BuildContext context) {
-    // viewInsets.bottom sudah di-handle oleh showModalBottomSheet
-    // dengan isScrollControlled:true — tidak perlu tambah manual
     return Padding(
       padding: EdgeInsets.only(
         left: 20, right: 20, top: 20,
@@ -868,7 +1022,6 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle bar
             Center(
               child: Container(
                 width: 40, height: 4,
@@ -884,8 +1037,6 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 14),
-
-            // Live preview
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -904,7 +1055,6 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
               ),
             ),
             const SizedBox(height: 12),
-
             TextField(
               autofocus: widget.editing == null,
               controller: _ctrl,
@@ -920,7 +1070,6 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
               ),
             ),
             const SizedBox(height: 16),
-
             const Text('Warna Teks',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             const SizedBox(height: 8),
@@ -951,7 +1100,6 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
               ),
             ),
             const SizedBox(height: 16),
-
             const Text('Jenis Font',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             const SizedBox(height: 8),
@@ -986,7 +1134,6 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
               ),
             ),
             const SizedBox(height: 16),
-
             const Text('Ukuran',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             Slider(
@@ -997,7 +1144,6 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
               onChanged: (v) => setState(() => _size = v),
             ),
             const SizedBox(height: 8),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

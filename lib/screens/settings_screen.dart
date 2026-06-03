@@ -16,30 +16,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeModeScope.of(context);
+    final bgColor = isDark ? kBackgroundDark : kBackground;
+    final cardColor = isDark ? kSurfaceDark : Colors.white;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFEDE2E0),
+      backgroundColor: bgColor,
+      drawer: buildAppDrawer(context, currentRoute: 'settings'),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFEDE2E0),
+        backgroundColor: bgColor,
         elevation: 0,
         title: const Text(
           'Pengaturan',
           style: TextStyle(
-            color: Color(0xFF5B62B3),
+            color: kPrimary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.menu_rounded, color: Color(0xFF5B62B3)),
-          onPressed: () => MainShell.scaffoldKey.currentState?.openDrawer(),
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu_rounded, color: kPrimary),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // ── Tampilan ──────────────────────────────────────────────
+          _buildSection(
+            title: 'Tampilan',
+            cardColor: cardColor,
+            children: [
+              _buildSwitchTile(
+                icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                title: 'Mode Gelap',
+                subtitle: 'Gunakan tema gelap',
+                value: isDark,
+                onChanged: (_) => ThemeModeScope.toggle(context),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
           // ── Profil ────────────────────────────────────────────────
           _buildSection(
             title: 'Profil',
+            cardColor: cardColor,
             children: [
               _buildTile(
                 icon: Icons.person_outline_rounded,
@@ -60,6 +84,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // ── Kamera & Foto ─────────────────────────────────────────
           _buildSection(
             title: 'Kamera & Foto',
+            cardColor: cardColor,
             children: [
               _buildDropdownTile(
                 icon: Icons.high_quality_rounded,
@@ -82,6 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // ── Notifikasi ────────────────────────────────────────────
           _buildSection(
             title: 'Notifikasi',
+            cardColor: cardColor,
             children: [
               _buildSwitchTile(
                 icon: Icons.notifications_outlined,
@@ -97,6 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // ── Data ──────────────────────────────────────────────────
           _buildSection(
             title: 'Data',
+            cardColor: cardColor,
             children: [
               _buildTile(
                 icon: Icons.delete_outline_rounded,
@@ -112,6 +139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // ── Tentang ───────────────────────────────────────────────
           _buildSection(
             title: 'Tentang',
+            cardColor: cardColor,
             children: [
               _buildTile(
                 icon: Icons.info_outline_rounded,
@@ -133,7 +161,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSection({required String title, required List<Widget> children}) {
+  Widget _buildSection({
+    required String title,
+    required List<Widget> children,
+    required Color cardColor,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -144,14 +176,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF5B62B3),
+              color: kPrimary,
               letterSpacing: 1.1,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
@@ -165,7 +197,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Divider(
                       height: 1,
                       indent: 52,
-                      color: Colors.grey.shade100,
+                      color: Colors.grey.shade200,
                     ),
                 ],
               );
@@ -184,7 +216,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Color? iconColor,
   }) {
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? const Color(0xFF5B62B3), size: 22),
+      leading: Icon(icon, color: iconColor ?? kPrimary, size: 22),
       title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
       subtitle: subtitle != null
           ? Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey))
@@ -206,7 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required ValueChanged<bool> onChanged,
   }) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF5B62B3), size: 22),
+      leading: Icon(icon, color: kPrimary, size: 22),
       title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
       subtitle: subtitle != null
           ? Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey))
@@ -214,8 +246,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: Switch.adaptive(
         value: value,
         onChanged: onChanged,
-        activeThumbColor: const Color(0xFF5B62B3),
-        activeTrackColor: const Color(0xFF5B62B3).withValues(alpha: 0.5),
+        activeThumbColor: kPrimary,
+        activeTrackColor: kPrimary.withValues(alpha: 0.5),
       ),
       dense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -230,12 +262,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     return ListTile(
-      leading: Icon(icon, color: const Color(0xFF5B62B3), size: 22),
+      leading: Icon(icon, color: kPrimary, size: 22),
       title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
       trailing: DropdownButton<String>(
         value: value,
         underline: const SizedBox.shrink(),
-        style: const TextStyle(fontSize: 13, color: Color(0xFF5B62B3)),
+        style: const TextStyle(fontSize: 13, color: kPrimary),
         items: items
             .map((e) => DropdownMenuItem(value: e, child: Text(e)))
             .toList(),
@@ -263,9 +295,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5B62B3),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
             onPressed: () => Navigator.pop(context),
             child: const Text('Simpan'),
           ),
@@ -293,7 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Semua foto dihapus.'),
-                  backgroundColor: Color(0xFF5B62B3),
+                  backgroundColor: kPrimary,
                 ),
               );
             },

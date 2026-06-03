@@ -107,9 +107,10 @@ class _EmailScreenState extends State<EmailScreen> {
   }
 
   void _showStatusModal({required bool success, String? errorMessage}) {
+    final isDark = ThemeModeScope.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? kSurfaceDark : Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => _StatusModal(
@@ -128,6 +129,7 @@ class _EmailScreenState extends State<EmailScreen> {
   }
 
   void _pickPhoto() {
+    final isDark = ThemeModeScope.of(context);
     final state = AppStateScope.of(context);
     if (state.photos.isEmpty) {
       _showSnack('Galeri kosong.', isError: true);
@@ -135,7 +137,7 @@ class _EmailScreenState extends State<EmailScreen> {
     }
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? kSurfaceDark : Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sheetCtx) => Padding(
@@ -195,20 +197,24 @@ class _EmailScreenState extends State<EmailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeModeScope.of(context);
+    final bg = isDark ? kBackgroundDark : const Color(0xFFEDE2E0);
     return Scaffold(
-      backgroundColor: const Color(0xFFEDE2E0),
+      backgroundColor: bg,
+      drawer: buildAppDrawer(context, currentRoute: 'email'),
       appBar: AppBar(
+        backgroundColor: bg,
         title: const Text('Kirim Email'),
         leading: IconButton(
-          icon: const Icon(Icons.menu_rounded),
-          onPressed: () =>
-              MainShell.scaffoldKey.currentState?.openDrawer(),
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: kPrimary),
+          onPressed: () => Navigator.maybePop(context),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_rounded),
-            color: const Color(0xFF5B62B3),
-            onPressed: () => Navigator.maybePop(context),
+          Builder(
+            builder: (ctx) => IconButton(
+              icon: const Icon(Icons.menu_rounded, color: kPrimary),
+              onPressed: () => Scaffold.of(ctx).openDrawer(),
+            ),
           ),
         ],
       ),
@@ -221,6 +227,7 @@ class _EmailScreenState extends State<EmailScreen> {
               label: 'Nama Penerima',
               hint: 'Budi Santoso',
               icon: Icons.person_outline_rounded,
+              isDark: isDark,
             ),
             const SizedBox(height: 14),
             _buildTextField(
@@ -229,6 +236,7 @@ class _EmailScreenState extends State<EmailScreen> {
               hint: 'nama@gmail.com',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
+              isDark: isDark,
             ),
             const SizedBox(height: 14),
             _buildTextField(
@@ -236,11 +244,12 @@ class _EmailScreenState extends State<EmailScreen> {
               label: 'Subjek',
               hint: 'Tulis subjek...',
               icon: Icons.subject_rounded,
+              isDark: isDark,
             ),
             const SizedBox(height: 14),
             Container(
               decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? kSurfaceDark : Colors.white,
                   borderRadius: BorderRadius.circular(12)),
               child: TextField(
                 controller: _bodyController,
@@ -257,7 +266,7 @@ class _EmailScreenState extends State<EmailScreen> {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? kSurfaceDark : Colors.white,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFFCFD1E8)),
                 ),
@@ -305,10 +314,12 @@ class _EmailScreenState extends State<EmailScreen> {
     required String hint,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
+    bool isDark = false,
   }) {
     return Container(
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(12)),
+          color: isDark ? kSurfaceDark : Colors.white,
+          borderRadius: BorderRadius.circular(12)),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
