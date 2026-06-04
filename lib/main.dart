@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models/photo_state.dart';
 import 'screens/home_screen.dart';
 import 'screens/camera_screen.dart';
@@ -95,7 +96,23 @@ ThemeData _buildDarkTheme() => ThemeData(
 class ThemeModeNotifier extends ChangeNotifier {
   bool _isDark = false;
   bool get isDark => _isDark;
-  void toggle() { _isDark = !_isDark; notifyListeners(); }
+
+  ThemeModeNotifier() {
+    _loadFromPrefs();
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isDark = prefs.getBool('isDarkMode') ?? false;
+    notifyListeners();
+  }
+
+  Future<void> toggle() async {
+    _isDark = !_isDark;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDarkMode', _isDark);
+  }
 }
 
 class ThemeModeScope extends InheritedNotifier<ThemeModeNotifier> {

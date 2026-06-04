@@ -205,16 +205,18 @@ class _EmailScreenState extends State<EmailScreen> {
       appBar: AppBar(
         backgroundColor: bg,
         title: const Text('Kirim Email'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: kPrimary),
-          onPressed: () => Navigator.maybePop(context),
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu_rounded, color: kPrimary),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
         ),
         actions: [
-          Builder(
-            builder: (ctx) => IconButton(
-              icon: const Icon(Icons.menu_rounded, color: kPrimary),
-              onPressed: () => Scaffold.of(ctx).openDrawer(),
-            ),
+          IconButton(
+            icon: const Icon(Icons.home_rounded, color: kPrimary),
+            tooltip: 'Ke Beranda',
+            onPressed: () => Navigator.of(context)
+                .popUntil((route) => route.isFirst),
           ),
         ],
       ),

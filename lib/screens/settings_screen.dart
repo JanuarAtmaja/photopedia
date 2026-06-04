@@ -40,6 +40,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.home_rounded, color: kPrimary),
+            tooltip: 'Ke Beranda',
+            onPressed: () => Navigator.of(context)
+                .popUntil((route) => route.isFirst),
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

@@ -79,6 +79,12 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
             onPressed: _loadStats,
           ),
           IconButton(
+            icon: const Icon(Icons.home_rounded, color: kPrimary),
+            tooltip: 'Ke Beranda',
+            onPressed: () => Navigator.of(context)
+                .popUntil((route) => route.isFirst),
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
             tooltip: 'Reset statistik',
             onPressed: _confirmReset,

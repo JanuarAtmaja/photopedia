@@ -60,11 +60,14 @@ class OverlayItem {
 class EditPhotoScreen extends StatefulWidget {
   final List<String> photoPaths;
   final String initialFilterId;
+  /// true jika foto sudah ter-bake filter-nya (dari kamera), skip re-apply
+  final bool filterAlreadyBaked;
 
   const EditPhotoScreen({
     super.key,
     required this.photoPaths,
     this.initialFilterId = 'none',
+    this.filterAlreadyBaked = false,
     String? photoPath,
   });
 
@@ -138,8 +141,15 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
             Size(decoded.width.toDouble(), decoded.height.toDouble());
       }
 
-      final preview = await _computeFilter(
-          bytes, _activeFilters[index]!, _brightnessMap[index]!.toInt());
+      // Jika filter sudah ter-bake (dari kamera), langsung pakai bytes mentah
+      // sebagai preview tanpa apply filter ulang agar tidak double-filter.
+      final Uint8List preview;
+      if (widget.filterAlreadyBaked) {
+        preview = bytes;
+      } else {
+        preview = await _computeFilter(
+            bytes, _activeFilters[index]!, _brightnessMap[index]!.toInt());
+      }
       if (mounted) {
         setState(() {
           _previewBytes[index] = preview;
@@ -614,10 +624,12 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
   Widget _buildSelectedLayerPanel() {
     final list = _currentOverlays;
     if (list.isEmpty) return const SizedBox.shrink();
-    final item = list.firstWhere(
-      (o) => o.id == _selectedOverlayId,
-      orElse: () => list.first,
-    );
+    final selId = _selectedOverlayId;
+    if (selId == null) return const SizedBox.shrink();
+    final idx = list.indexWhere((o) => o.id == selId);
+    if (idx == -1) return const SizedBox.shrink();
+    final item = list[idx];
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -626,32 +638,64 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFF5B62B3), width: 1),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            item.type == 'emoji' ? item.content : '"${item.content}"',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: item.type == 'emoji' ? 22 : 13),
-            overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  item.type == 'emoji' ? item.content : '"${item.content}"',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: item.type == 'emoji' ? 22 : 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (item.type == 'text')
+                TextButton.icon(
+                  onPressed: () => _showAddTextDialog(editing: item),
+                  icon: const Icon(Icons.edit, size: 14, color: Color(0xFF5B62B3)),
+                  label: const Text('Edit',
+                      style: TextStyle(color: Color(0xFF5B62B3), fontSize: 12)),
+                  style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8)),
+                ),
+              TextButton.icon(
+                onPressed: () => _deleteOverlay(item.id),
+                icon: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
+                label: const Text('Hapus',
+                    style: TextStyle(color: Colors.red, fontSize: 12)),
+                style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8)),
+              ),
+            ],
           ),
-          const Spacer(),
-          if (item.type == 'text')
-            TextButton.icon(
-              onPressed: () => _showAddTextDialog(editing: item),
-              icon: const Icon(Icons.edit, size: 14, color: Color(0xFF5B62B3)),
-              label: const Text('Edit',
-                  style: TextStyle(color: Color(0xFF5B62B3), fontSize: 12)),
-              style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8)),
-            ),
-          TextButton.icon(
-            onPressed: () => _deleteOverlay(item.id),
-            icon: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
-            label: const Text('Hapus',
-                style: TextStyle(color: Colors.red, fontSize: 12)),
-            style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8)),
+          // Slider ukuran
+          Row(
+            children: [
+              const Icon(Icons.text_decrease, color: Colors.white54, size: 14),
+              Expanded(
+                child: SliderTheme(
+                  data: const SliderThemeData(
+                    trackHeight: 2,
+                    thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7),
+                    overlayShape: RoundSliderOverlayShape(overlayRadius: 14),
+                    activeTrackColor: Color(0xFF5B62B3),
+                    inactiveTrackColor: Colors.white24,
+                    thumbColor: Colors.white,
+                  ),
+                  child: Slider(
+                    value: item.fontSize.clamp(10.0, 120.0),
+                    min: 10, max: 120,
+                    onChanged: (v) {
+                      setState(() => list[idx] = item.copyWith(fontSize: v));
+                    },
+                  ),
+                ),
+              ),
+              const Icon(Icons.text_increase, color: Colors.white54, size: 14),
+            ],
           ),
         ],
       ),
@@ -789,10 +833,10 @@ class _DraggableOverlayWrapper extends StatefulWidget {
 }
 
 class _DraggableOverlayWrapperState extends State<_DraggableOverlayWrapper> {
-  // Posisi & fontSize disimpan lokal selama gesture berlangsung
   late Offset _pos;
   late double _fontSize;
   double _fontSizeAtStart = 28.0;
+  Offset _lastFocalPoint = Offset.zero;
 
   @override
   void initState() {
@@ -804,16 +848,12 @@ class _DraggableOverlayWrapperState extends State<_DraggableOverlayWrapper> {
   @override
   void didUpdateWidget(_DraggableOverlayWrapper old) {
     super.didUpdateWidget(old);
-    // Sync jika parent update item (misal: setelah edit teks)
     if (old.item.position != widget.item.position) _pos = widget.item.position;
     if (old.item.fontSize != widget.item.fontSize) _fontSize = widget.item.fontSize;
   }
 
   void _commitToParent() {
-    widget.onDragEnd(widget.item.copyWith(
-      position: _pos,
-      fontSize: _fontSize,
-    ));
+    widget.onDragEnd(widget.item.copyWith(position: _pos, fontSize: _fontSize));
   }
 
   @override
@@ -828,14 +868,15 @@ class _DraggableOverlayWrapperState extends State<_DraggableOverlayWrapper> {
         onTap: widget.onTap,
         onScaleStart: (details) {
           _fontSizeAtStart = _fontSize;
+          _lastFocalPoint = details.localFocalPoint;
         },
         onScaleUpdate: (details) {
           setState(() {
-            // 1 jari = pan
             if (details.pointerCount == 1) {
-              _pos = _pos + details.focalPointDelta;
+              final delta = details.localFocalPoint - _lastFocalPoint;
+              _pos = _pos + delta;
+              _lastFocalPoint = details.localFocalPoint;
             }
-            // 2 jari = scale, pakai rasio langsung dari details.scale
             if (details.pointerCount >= 2) {
               _fontSize = (_fontSizeAtStart * details.scale).clamp(10.0, 120.0);
             }
@@ -896,18 +937,6 @@ class _DraggableOverlayWrapperState extends State<_DraggableOverlayWrapper> {
                     ),
                   ),
                 ),
-              // Indikator scale
-              Positioned(
-                bottom: -10, right: -10,
-                child: Container(
-                  width: 22, height: 22,
-                  decoration: BoxDecoration(
-                      color: Colors.black54, shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white30)),
-                  child: const Icon(Icons.zoom_out_map_rounded,
-                      color: Colors.white70, size: 13),
-                ),
-              ),
             ],
           ],
         ),

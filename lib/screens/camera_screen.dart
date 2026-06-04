@@ -186,9 +186,10 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     try {
       final XFile xfile = await ctrl.takePicture();
       final rawBytes = await xfile.readAsBytes();
-      // FIX: filter di-bake ke gambar saat capture, kirim 'none' ke edit screen
+      // Simpan foto RAW (hanya mirror jika kamera depan) — filter TIDAK di-bake.
+      // Edit screen akan apply filter dari raw bytes agar user bisa ganti bebas.
       final processedBytes = await _processImageBytes(rawBytes,
-          filter: _activeFilter, mirror: _isFrontCamera);
+          filter: kAppFilters.first, mirror: _isFrontCamera);
       final dir = await getApplicationDocumentsDirectory();
       final savedPath = p.join(dir.path, 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg');
       await File(savedPath).writeAsBytes(processedBytes);
@@ -205,8 +206,9 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         navigator.push(MaterialPageRoute(
           builder: (_) => EditPhotoScreen(
             photoPaths: List.from(_capturedPaths),
-            // filter sudah ter-bake, tapi kirim ID agar chip tampil sesuai
+            // kirim filter aktif agar chip di edit screen terpilih & langsung apply
             initialFilterId: _activeFilter.id,
+            filterAlreadyBaked: false,
           ),
         )).then((_) {
           if (mounted) setState(() => _capturedPaths.clear());

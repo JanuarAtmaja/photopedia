@@ -162,9 +162,10 @@ class _PreviewScreenState extends State<PreviewScreen> {
   }
 
   Future<void> _handleSlotTap(int slotIndex) async {
+    final isDark = ThemeModeScope.of(context);
     await showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? kSurfaceDark : Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sheetCtx) => SafeArea(child: Column(

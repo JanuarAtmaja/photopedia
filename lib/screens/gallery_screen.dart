@@ -118,11 +118,6 @@ class _GalleryScreenState extends State<GalleryScreen>
             tooltip: 'Upload foto',
             onPressed: _handlePickUpload,
           ),
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_rounded),
-            color: const Color(0xFF5B62B3),
-            onPressed: () => Navigator.maybePop(context),
-          ),
         ],
         bottom: TabBar(
           controller: _tabController,
@@ -201,6 +196,7 @@ class _DropZoneWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeModeScope.of(context);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -210,7 +206,7 @@ class _DropZoneWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: isDragOver
               ? const Color(0xFF5B62B3).withValues(alpha: 0.08)
-              : Colors.white,
+              : (isDark ? kSurfaceDark : Colors.white),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isDragOver
@@ -247,14 +243,14 @@ class _DropZoneWidget extends StatelessWidget {
                 fontWeight: FontWeight.bold,
                 color: isDragOver
                     ? const Color(0xFF5B62B3)
-                    : const Color(0xFF2D2D2D),
+                    : (isDark ? Colors.white : const Color(0xFF2D2D2D)),
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Ketuk atau seret foto ke sini\nFormat: JPG, PNG, WEBP, GIF',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.grey, height: 1.5),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
@@ -411,9 +407,10 @@ class _GridCell extends StatelessWidget {
   }
 
   void _showContextMenu(BuildContext context) {
+    final isDark = ThemeModeScope.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? kSurfaceDark : Colors.white,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (_) => SafeArea(
