@@ -43,3 +43,28 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ─── Environment & Secrets ───────────────────────────────────────────────────
+# JANGAN pernah commit file ini — berisi kredensial sensitif
+.env
+
+# ─── Android build cache (jangan push) ───────────────────────────────────────
+android/.gradle/
+android/.kotlin/
+android/local.properties
+
+# ─── iOS generated files ─────────────────────────────────────────────────────
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/flutter_assets/
+ios/Flutter/flutter_export_environment.sh
+ios/ServiceDefinitions.json
+ios/Runner/GeneratedPluginRegistrant.*
+
+# ─── Windows generated files ─────────────────────────────────────────────────
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugins.cmake

@@ -1,18 +1,23 @@
 import 'dart:typed_data';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server/gmail.dart';
 
 /// EmailService menggunakan SMTP Gmail + App Password.
 ///
-/// CARA SETUP:
-/// 1. Pastikan akun Gmail sudah aktifkan 2FA
-/// 2. Buka myaccount.google.com → Security → App Passwords
-/// 3. Buat App Password baru → salin 16 karakter
-/// 4. Isi _gmailUser dan _appPassword di bawah
+/// Kredensial dibaca dari file .env (TIDAK di-commit ke git).
+/// Salin .env.example → .env lalu isi GMAIL_USER dan GMAIL_APP_PASSWORD.
 class EmailService {
-  // ── Gmail credentials ────────────────────────────────────────────────────
-  static const String _gmailUser   = 'muhamadhisyamganteng@gmail.com'; // ← ganti
-  static const String _appPassword = 'yyxxgsbokftqpjfn'; // ← App Password 16 karakter
+  // ── Gmail credentials — dibaca dari .env ────────────────────────────────
+  static String get _gmailUser =>
+      dotenv.env['GMAIL_USER'] ?? (throw const EmailServiceException(
+        'GMAIL_USER tidak ditemukan di .env',
+      ));
+
+  static String get _appPassword =>
+      dotenv.env['GMAIL_APP_PASSWORD'] ?? (throw const EmailServiceException(
+        'GMAIL_APP_PASSWORD tidak ditemukan di .env',
+      ));
 
   /// Kirim email via SMTP Gmail dengan attachment foto opsional.
   static Future<void> sendPhotoEmail({
@@ -32,7 +37,7 @@ class EmailService {
         'Salam,\nPhotopedia App';
 
     final message = Message()
-      ..from = const Address(_gmailUser, 'Photopedia App')
+      ..from = Address(_gmailUser, 'Photopedia App')
       ..recipients.add(toEmail)
       ..subject = subject
       ..text = emailBody;

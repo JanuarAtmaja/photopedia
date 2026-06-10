@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'models/photo_state.dart';
 import 'screens/home_screen.dart';
@@ -18,6 +19,7 @@ const kSurfaceDark   = Color(0xFF1E1E2E);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   final appState = AppState();
   await appState.loadFromStorage();
