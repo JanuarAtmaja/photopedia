@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
@@ -99,6 +100,35 @@ img.Image _applyVintage(img.Image src) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ISOLATE HELPER — runs image processing off the main thread
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Message passed to the isolate for image processing.
+class _ProcessRequest {
+  final Uint8List rawBytes;
+  final String filterId;
+  final bool mirror;
+  const _ProcessRequest({required this.rawBytes, required this.filterId, required this.mirror});
+}
+
+/// Top-level function for compute() isolate.
+Uint8List _processInIsolate(_ProcessRequest req) {
+  img.Image? image = img.decodeImage(req.rawBytes);
+  if (image == null) return req.rawBytes;
+  if (req.mirror) image = img.flipHorizontal(image);
+
+  // Apply filter based on id
+  switch (req.filterId) {
+    case 'bw': image = _applyBW(image); break;
+    case 'sepia': image = _applySepia(image); break;
+    case 'invert': image = _applyInvert(image); break;
+    case 'vintage': image = _applyVintage(image); break;
+  }
+
+  return Uint8List.fromList(img.encodeJpg(image, quality: 90));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CAMERA SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -186,10 +216,11 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     try {
       final XFile xfile = await ctrl.takePicture();
       final rawBytes = await xfile.readAsBytes();
-      // Simpan foto RAW (hanya mirror jika kamera depan) — filter TIDAK di-bake.
-      // Edit screen akan apply filter dari raw bytes agar user bisa ganti bebas.
-      final processedBytes = await _processImageBytes(rawBytes,
-          filter: kAppFilters.first, mirror: _isFrontCamera);
+      // Process in isolate to avoid jank
+      final processedBytes = await compute(
+        _processInIsolate,
+        _ProcessRequest(rawBytes: rawBytes, filterId: 'none', mirror: _isFrontCamera),
+      );
       final dir = await getApplicationDocumentsDirectory();
       final savedPath = p.join(dir.path, 'photo_${DateTime.now().millisecondsSinceEpoch}.jpg');
       await File(savedPath).writeAsBytes(processedBytes);
@@ -206,7 +237,6 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         navigator.push(MaterialPageRoute(
           builder: (_) => EditPhotoScreen(
             photoPaths: List.from(_capturedPaths),
-            // kirim filter aktif agar chip di edit screen terpilih & langsung apply
             initialFilterId: _activeFilter.id,
             filterAlreadyBaked: false,
           ),
@@ -222,15 +252,6 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     } finally {
       if (mounted) setState(() => _isCapturing = false);
     }
-  }
-
-  static Future<Uint8List> _processImageBytes(Uint8List rawBytes,
-      {required CameraFilter filter, required bool mirror}) async {
-    img.Image? image = img.decodeImage(rawBytes);
-    if (image == null) return rawBytes;
-    if (mirror) image = img.flipHorizontal(image);
-    if (filter.applyToImage != null) image = filter.applyToImage!(image);
-    return Uint8List.fromList(img.encodeJpg(image, quality: 90));
   }
 
   void _removeLastPhoto() {
@@ -271,15 +292,14 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-    final isDark = ThemeModeScope.of(context);
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.black.withValues(alpha: 0.5),
+        backgroundColor: Colors.black.withValues(alpha: 0.4),
         elevation: 0,
         title: const Text('KAMERA',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15, letterSpacing: 1)),
         leading: IconButton(
           icon: const Icon(Icons.menu_rounded, color: Colors.white),
           onPressed: () => MainShell.scaffoldKey.currentState?.openDrawer(),
@@ -289,12 +309,12 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
         children: [
           Positioned.fill(child: _buildCameraPreview()),
           if (_showCuttingFrame) Positioned.fill(child: _buildCuttingFrameOverlay()),
-          // Thumbnail strip pojok kiri — di bawah AppBar
+          // Thumbnail strip
           Positioned(top: kToolbarHeight + MediaQuery.of(context).padding.top + 8,
               left: 8, child: _buildCapturedStrip()),
-          // Controls panel bawah
+          // Controls
           Positioned(bottom: 0, left: 0, right: 0,
-              child: _buildControls(isDark)),
+              child: _buildControls()),
         ],
       ),
     );
@@ -337,15 +357,15 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
           left: boxLeft, top: boxTop, width: boxW, height: boxH,
           child: Container(
             decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFF5B62B3), width: 2.5)),
+                border: Border.all(color: kPrimary.withValues(alpha: 0.7), width: 2)),
             child: Stack(children: [
               Positioned(
                 top: 6, left: 6,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF5B62B3).withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(4),
+                    color: kPrimary.withValues(alpha: 0.75),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text('Posisikan wajah di sini',
                       style: TextStyle(color: Colors.white, fontSize: 10,
@@ -380,7 +400,6 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Dot progress
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
           decoration: BoxDecoration(
@@ -394,7 +413,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                 width: 8, height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: taken ? const Color(0xFF5B62B3) : Colors.white38,
+                  color: taken ? kPrimary : Colors.white38,
                   border: Border.all(color: Colors.white54, width: 1),
                 ),
               );
@@ -408,13 +427,13 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
               margin: const EdgeInsets.only(bottom: 5),
               width: 48, height: 48,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF5B62B3), width: 2),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: kPrimary, width: 2),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 child: Image.file(File(_capturedPaths[i]),
-                    fit: BoxFit.cover,
+                    fit: BoxFit.cover, cacheWidth: 100,
                     errorBuilder: (_, __, ___) =>
                         const Icon(Icons.image, color: Colors.white54)),
               ),
@@ -425,7 +444,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
               width: 48, height: 24,
               decoration: BoxDecoration(
                   color: Colors.red.shade700.withValues(alpha: 0.85),
-                  borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(10)),
               child: const Icon(Icons.undo_rounded, color: Colors.white, size: 14),
             ),
           ),
@@ -434,12 +453,11 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
     );
   }
 
-  Widget _buildControls(bool isDark) {
+  Widget _buildControls() {
     final remaining = _photoCount - _capturedPaths.length;
     final allTaken = remaining == 0;
 
     return Container(
-      // Solid semi-transparan agar tidak tembus ke konten di atasnya
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).padding.bottom + 12,
         top: 12, left: 12, right: 12,
@@ -454,7 +472,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ── Row 1: Filter chips ───────────────────────────────────────
+          // ── Filter chips ───────────────────────────────────────
           SizedBox(
             height: 72,
             child: SingleChildScrollView(
@@ -475,21 +493,21 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                           width: 44, height: 44,
                           decoration: BoxDecoration(
                             color: f.chipColor,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             border: selected
                                 ? Border.all(color: Colors.white, width: 2.5)
                                 : null,
                             boxShadow: selected
                                 ? [BoxShadow(color: f.chipColor.withValues(alpha: 0.6),
-                                    blurRadius: 6)]
+                                    blurRadius: 8)]
                                 : null,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 4),
                         Text(f.label, style: TextStyle(
                           color: selected ? Colors.white : Colors.white60,
-                          fontSize: 9,
-                          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 10,
+                          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                         )),
                       ],
                     ),
@@ -502,11 +520,10 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
           const SizedBox(height: 8),
 
-          // ── Row 2: Jumlah foto + label ────────────────────────────────
+          // ── Photo count + label ────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Toggle 1/3 foto — hanya tampil sebelum mulai ambil foto
               if (_capturedPaths.isEmpty)
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   _PhotoCountChip(label: '1 Foto', selected: _photoCount == 1,
@@ -518,11 +535,10 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
               else
                 const SizedBox.shrink(),
 
-              // Label progress
               Text(
                 allTaken ? 'Siap!' : 'Foto ${_capturedPaths.length + 1} / $_photoCount',
                 style: TextStyle(
-                  color: allTaken ? const Color(0xFF5B62B3) : Colors.white70,
+                  color: allTaken ? kPrimary : Colors.white70,
                   fontSize: 12, fontWeight: FontWeight.w600,
                 ),
               ),
@@ -531,12 +547,11 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
 
           const SizedBox(height: 10),
 
-          // ── Row 3: Tombol aksi ────────────────────────────────────────
+          // ── Action buttons ────────────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Kiri: galeri + frame-guide
               Column(mainAxisSize: MainAxisSize.min, children: [
                 _CamButton(icon: Icons.photo_library_rounded, onTap: _pickFromGallery),
                 const SizedBox(height: 8),
@@ -546,7 +561,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                 ),
               ]),
 
-              // Tengah: shutter
+              // Shutter
               GestureDetector(
                 onTap: (_isCapturing || allTaken) ? null : _takePicture,
                 child: AnimatedContainer(
@@ -556,11 +571,11 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: allTaken ? const Color(0xFF5B62B3) : Colors.white,
+                      color: allTaken ? kPrimary : Colors.white,
                       width: 3.5,
                     ),
                     color: allTaken
-                        ? const Color(0xFF5B62B3).withValues(alpha: 0.25)
+                        ? kPrimary.withValues(alpha: 0.25)
                         : Colors.transparent,
                   ),
                   child: _isCapturing
@@ -570,16 +585,13 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
                       : Container(
                           margin: const EdgeInsets.all(5),
                           decoration: BoxDecoration(
-                            color: allTaken
-                                ? const Color(0xFF5B62B3)
-                                : Colors.white,
+                            color: allTaken ? kPrimary : Colors.white,
                             shape: BoxShape.circle,
                           ),
                         ),
                 ),
               ),
 
-              // Kanan: switch + mirror
               Column(mainAxisSize: MainAxisSize.min, children: [
                 _CamButton(icon: Icons.cameraswitch_rounded, onTap: _switchCamera),
                 const SizedBox(height: 8),
@@ -597,7 +609,7 @@ class _CameraScreenState extends State<CameraScreen> with WidgetsBindingObserver
   }
 }
 
-// ─── Widgets kamera ───────────────────────────────────────────────────────────
+// ─── Camera Widgets ───────────────────────────────────────────────────────────
 
 class _CamButton extends StatelessWidget {
   final IconData icon;
@@ -611,7 +623,7 @@ class _CamButton extends StatelessWidget {
       child: Container(
         width: 44, height: 44,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.18),
+          color: Colors.white.withValues(alpha: 0.15),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: Colors.white, size: 22),
@@ -656,18 +668,18 @@ class _PhotoCountChip extends StatelessWidget {
         duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF5B62B3)
+          color: selected ? kPrimary
               : Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: selected ? const Color(0xFF5B62B3) : Colors.white38,
+            color: selected ? kPrimary : Colors.white38,
             width: 1.5,
           ),
         ),
         child: Text(label, style: TextStyle(
           color: selected ? Colors.white : Colors.white70,
           fontSize: 11,
-          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
         )),
       ),
     );

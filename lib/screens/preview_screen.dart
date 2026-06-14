@@ -149,7 +149,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Foto tersimpan di galeri ✓'),
-              backgroundColor: Color(0xFF5B62B3)));
+              backgroundColor: kPrimary));
       }
     } catch (e) {
       if (mounted) {
@@ -179,7 +179,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
           Text('Foto ${slotIndex + 1}',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ListTile(
-            leading: const Icon(Icons.camera_alt_rounded, color: Color(0xFF5B62B3)),
+            leading: const Icon(Icons.camera_alt_rounded, color: kPrimary),
             title: const Text('Ambil foto baru'),
             onTap: () async {
               Navigator.pop(sheetCtx);
@@ -188,7 +188,7 @@ class _PreviewScreenState extends State<PreviewScreen> {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.photo_library_rounded, color: Color(0xFF5B62B3)),
+            leading: const Icon(Icons.photo_library_rounded, color: kPrimary),
             title: const Text('Pilih dari galeri'),
             onTap: () async {
               Navigator.pop(sheetCtx);
@@ -510,48 +510,51 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   Widget _buildFrameSelector(Color cardBg, bool isDark) {
     return Container(
-      height: 88,
-      color: cardBg,
+      height: 92,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         itemCount: kFrames.length,
         itemBuilder: (_, i) {
           final frame = kFrames[i];
           final isSelected = _selectedFrame.id == frame.id;
-          // FIX Request 3: semua frame tampil untuk 1 foto maupun 3 foto
           return GestureDetector(
             onTap: () => setState(() => _selectedFrame = frame),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: const EdgeInsets.only(right: 10),
-              width: 64,
+              width: 70,
               decoration: BoxDecoration(
                 color: isSelected
-                    ? frame.accent.withValues(alpha: 0.15)
-                    : (isDark ? Colors.white10 : const Color(0xFFEDE2E0)),
-                borderRadius: BorderRadius.circular(12),
+                    ? frame.accent.withValues(alpha: 0.12)
+                    : (isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF5F2F0)),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isSelected ? frame.accent
-                      : (isDark ? Colors.white24 : Colors.grey.shade200),
+                      : (isDark ? Colors.white12 : Colors.grey.shade200),
                   width: isSelected ? 2.5 : 1,
                 ),
               ),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 frame.assetPath != null
-                    ? ClipRRect(borderRadius: BorderRadius.circular(6),
-                        child: Image.asset(frame.assetPath!, width: 36, height: 36,
+                    ? ClipRRect(borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(frame.assetPath!, width: 38, height: 38,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
                                 Icon(Icons.photo_size_select_large_rounded,
                                     color: frame.accent, size: 26)))
                     : Icon(Icons.hide_image_outlined,
                         color: isSelected ? frame.accent : Colors.grey, size: 26),
-                const SizedBox(height: 4),
+                const SizedBox(height: 5),
                 Text(frame.label, textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 9, height: 1.2,
-                      color: isSelected ? frame.accent : Colors.grey,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? frame.accent : Colors.grey.shade500,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
                     )),
               ]),
             ),
@@ -563,20 +566,29 @@ class _PreviewScreenState extends State<PreviewScreen> {
 
   Widget _buildMetadata(String timeStr, Color cardBg, bool isDark) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(color: cardBg,
-            borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(14),
+        ),
         child: Row(children: [
-          const Icon(Icons.photo_camera_rounded, size: 15, color: kPrimary),
-          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: kPrimary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.photo_camera_rounded, size: 14, color: kPrimary),
+          ),
+          const SizedBox(width: 10),
           Text(_getFileSize(),
-              style: TextStyle(color: isDark ? Colors.white54 : Colors.grey,
-                  fontSize: 12)),
+              style: TextStyle(color: isDark ? Colors.white54 : Colors.grey.shade600,
+                  fontSize: 12, fontWeight: FontWeight.w500)),
           const Spacer(),
           Text('Diambil $timeStr',
-              style: TextStyle(color: isDark ? Colors.white38 : Colors.grey,
+              style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade500,
                   fontSize: 11)),
         ]),
       ),
@@ -590,36 +602,39 @@ class _PreviewScreenState extends State<PreviewScreen> {
         SizedBox(width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: _isSaving ? null : _captureAndSendEmail,
-            icon: const Icon(Icons.email_rounded),
+            icon: const Icon(Icons.email_rounded, size: 18),
             label: const Text('Kirim via Email'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Row(children: [
           Expanded(child: OutlinedButton.icon(
             onPressed: _isSaving ? null : _saveResult,
             icon: _isSaving
                 ? const SizedBox(width: 16, height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.save_alt_rounded),
+                : const Icon(Icons.save_alt_rounded, size: 18),
             label: Text(_isSaving ? 'Menyimpan...' : 'Simpan'),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: kPrimary),
+              side: const BorderSide(color: kPrimary, width: 1.5),
               foregroundColor: kPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
           )),
           const SizedBox(width: 10),
           Expanded(child: OutlinedButton.icon(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.camera_alt_rounded),
+            icon: const Icon(Icons.camera_alt_rounded, size: 18),
             label: const Text('Ambil Lagi'),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Colors.grey),
-              foregroundColor: Colors.grey,
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              side: BorderSide(color: Colors.grey.shade400, width: 1.5),
+              foregroundColor: Colors.grey.shade600,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
           )),
         ]),

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -10,12 +11,14 @@ import 'screens/settings_screen.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/email_screen.dart';
 
-// ─── Warna palette ────────────────────────────────────────────────────────────
+// ─── Color Palette ───────────────────────────────────────────────────────────
 const kPrimary       = Color(0xFF5B62B3);
-const kBackground    = Color(0xFFEDE2E0);
+const kPrimaryLight  = Color(0xFF8E93CC);
+const kAccent        = Color(0xFF7C5CFC);
+const kBackground    = Color(0xFFF5F2F0);
 const kSurface       = Colors.white;
-const kBackgroundDark = Color(0xFF121218);
-const kSurfaceDark   = Color(0xFF1E1E2E);
+const kBackgroundDark = Color(0xFF0F0F1A);
+const kSurfaceDark   = Color(0xFF1A1A2E);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -54,19 +57,23 @@ class PhotopediaApp extends StatelessWidget {
 ThemeData _buildLightTheme() => ThemeData(
   colorScheme: ColorScheme.fromSeed(
     seedColor: kPrimary, primary: kPrimary,
-    secondary: const Color(0xFF8E93CC),
+    secondary: kPrimaryLight,
     surface: kSurface, brightness: Brightness.light,
   ),
   scaffoldBackgroundColor: kBackground,
   appBarTheme: const AppBarTheme(
     backgroundColor: kBackground, foregroundColor: kPrimary, elevation: 0,
-    titleTextStyle: TextStyle(color: kPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+    titleTextStyle: TextStyle(
+      color: kPrimary, fontSize: 18, fontWeight: FontWeight.w700,
+      letterSpacing: 0.3,
+    ),
   ),
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
       backgroundColor: kPrimary, foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      elevation: 0,
     ),
   ),
   useMaterial3: true,
@@ -75,20 +82,24 @@ ThemeData _buildLightTheme() => ThemeData(
 ThemeData _buildDarkTheme() => ThemeData(
   colorScheme: ColorScheme.fromSeed(
     seedColor: kPrimary, primary: kPrimary,
-    secondary: const Color(0xFF8E93CC),
+    secondary: kPrimaryLight,
     surface: kSurfaceDark, brightness: Brightness.dark,
   ),
   scaffoldBackgroundColor: kBackgroundDark,
   appBarTheme: const AppBarTheme(
     backgroundColor: kBackgroundDark, foregroundColor: kPrimary, elevation: 0,
-    titleTextStyle: TextStyle(color: kPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+    titleTextStyle: TextStyle(
+      color: kPrimary, fontSize: 18, fontWeight: FontWeight.w700,
+      letterSpacing: 0.3,
+    ),
   ),
   cardColor: kSurfaceDark,
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
       backgroundColor: kPrimary, foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      elevation: 0,
     ),
   ),
   useMaterial3: true,
@@ -132,9 +143,6 @@ class ThemeModeScope extends InheritedNotifier<ThemeModeNotifier> {
 }
 
 // ─── Shared Drawer ────────────────────────────────────────────────────────────
-/// Drawer seragam dipakai di semua screen.
-/// [currentRoute]: nama screen aktif untuk highlight.
-/// [scaffoldKey]: opsional — jika null, pakai Scaffold.of(context).
 Widget buildAppDrawer(BuildContext context, {String currentRoute = ''}) {
   final isDark = ThemeModeScope.of(context);
   final bg = isDark ? kSurfaceDark : Colors.white;
@@ -147,86 +155,110 @@ Widget buildAppDrawer(BuildContext context, {String currentRoute = ''}) {
 
   return Drawer(
     backgroundColor: bg,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.horizontal(right: Radius.circular(24)),
+    ),
     child: SafeArea(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      child: Column(
         children: [
           // Header
-          DrawerHeader(
-            decoration: const BoxDecoration(color: kPrimary),
-            margin: EdgeInsets.zero,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                colors: [kPrimary, kAccent],
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const CircleAvatar(
-                  backgroundColor: Colors.white,
-                  radius: 28,
-                  child: Icon(Icons.person, color: kPrimary, size: 32),
+                Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.person_rounded, color: Colors.white, size: 28),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
                 const Text('Photopedia User',
-                    style: TextStyle(color: Colors.white, fontSize: 16,
-                        fontWeight: FontWeight.bold)),
+                  style: TextStyle(color: Colors.white, fontSize: 17,
+                    fontWeight: FontWeight.w700, letterSpacing: 0.2)),
+                const SizedBox(height: 4),
                 Text('user@photopedia.com',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 12)),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: 13)),
               ],
             ),
           ),
 
-          // ── Email ──
-          _DrawerItem(
-            icon: Icons.email_rounded,
-            label: 'Email',
-            selected: currentRoute == 'email',
-            textColor: textColor,
-            onTap: () => closeAndNavigate(() {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const EmailScreen()));
-            }),
-          ),
+          const SizedBox(height: 8),
 
-          // ── Settings ──
-          _DrawerItem(
-            icon: Icons.settings_rounded,
-            label: 'Settings',
-            selected: currentRoute == 'settings',
-            textColor: textColor,
-            onTap: () => closeAndNavigate(() {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SettingsScreen()));
-            }),
-          ),
-
-          // ── Analitik ──
-          _DrawerItem(
-            icon: Icons.bar_chart_rounded,
-            label: 'Analitik',
-            selected: currentRoute == 'analytics',
-            textColor: textColor,
-            onTap: () => closeAndNavigate(() {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const AnalyticsDashboard()));
-            }),
-          ),
-
-          const Divider(height: 1),
-
-          // ── Dark Mode Toggle ──
-          ListTile(
-            leading: Icon(isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                color: kPrimary),
-            title: Text(isDark ? 'Mode Terang' : 'Mode Gelap',
-                style: TextStyle(color: textColor)),
-            trailing: Switch.adaptive(
-              value: isDark,
-              onChanged: (_) => ThemeModeScope.toggle(context),
-              activeThumbColor: kPrimary,
-              activeTrackColor: kPrimary.withValues(alpha: 0.5),
+          // Menu items
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: [
+                _DrawerItem(
+                  icon: Icons.email_rounded,
+                  label: 'Email',
+                  selected: currentRoute == 'email',
+                  textColor: textColor,
+                  onTap: () => closeAndNavigate(() {
+                    Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const EmailScreen()));
+                  }),
+                ),
+                _DrawerItem(
+                  icon: Icons.settings_rounded,
+                  label: 'Settings',
+                  selected: currentRoute == 'settings',
+                  textColor: textColor,
+                  onTap: () => closeAndNavigate(() {
+                    Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                  }),
+                ),
+                _DrawerItem(
+                  icon: Icons.bar_chart_rounded,
+                  label: 'Analitik',
+                  selected: currentRoute == 'analytics',
+                  textColor: textColor,
+                  onTap: () => closeAndNavigate(() {
+                    Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AnalyticsDashboard()));
+                  }),
+                ),
+              ],
             ),
-            onTap: () => ThemeModeScope.toggle(context),
+          ),
+
+          // Dark Mode Toggle — bottom
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.06)
+                             : kPrimary.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: ListTile(
+                leading: Icon(isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: kPrimary, size: 22),
+                title: Text(isDark ? 'Mode Terang' : 'Mode Gelap',
+                  style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w500)),
+                trailing: Switch.adaptive(
+                  value: isDark,
+                  onChanged: (_) => ThemeModeScope.toggle(context),
+                  activeThumbColor: kPrimary,
+                  activeTrackColor: kPrimary.withValues(alpha: 0.4),
+                ),
+                onTap: () => ThemeModeScope.toggle(context),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
           ),
         ],
       ),
@@ -248,15 +280,20 @@ class _DrawerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: selected ? kPrimary : Colors.grey),
-      title: Text(label, style: TextStyle(
-        color: selected ? kPrimary : textColor,
-        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-      )),
-      selected: selected,
-      selectedTileColor: kPrimary.withValues(alpha: 0.1),
-      onTap: onTap,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: ListTile(
+        leading: Icon(icon, color: selected ? kPrimary : Colors.grey, size: 22),
+        title: Text(label, style: TextStyle(
+          color: selected ? kPrimary : textColor,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+          fontSize: 14,
+        )),
+        selected: selected,
+        selectedTileColor: kPrimary.withValues(alpha: 0.08),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onTap: onTap,
+      ),
     );
   }
 }
@@ -271,7 +308,7 @@ class MainTabNotifier extends InheritedWidget {
   bool updateShouldNotify(MainTabNotifier old) => changeTab != old.changeTab;
 }
 
-// ─── MainShell ────────────────────────────────────────────────────────────────
+// ─── MainShell (Lazy-loaded pages for performance) ────────────────────────────
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
   static final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
@@ -283,48 +320,66 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
 
-  void _onItemTapped(int index) => setState(() => _selectedIndex = index);
+  // Lazy-loaded pages — only built when first accessed
+  final Map<int, Widget> _cachedPages = {};
 
-  // Tab indices: 0=Beranda, 1=Kamera, 2=Galeri, 3=Profil(Settings)
-  static const List<Widget> _pages = [
-    HomeScreen(),
-    CameraScreen(),
-    GalleryScreen(),
-    SettingsScreen(),  // Profil = Settings
-  ];
+  Widget _getPage(int index) {
+    return _cachedPages.putIfAbsent(index, () {
+      switch (index) {
+        case 0: return const HomeScreen();
+        case 1: return const CameraScreen();
+        case 2: return const GalleryScreen();
+        case 3: return const SettingsScreen();
+        default: return const HomeScreen();
+      }
+    });
+  }
+
+  void _onItemTapped(int index) => setState(() => _selectedIndex = index);
 
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeModeScope.of(context);
-    final navBg = isDark ? kSurfaceDark : Colors.white;
+    final navBg = isDark
+        ? kSurfaceDark.withValues(alpha: 0.85)
+        : Colors.white.withValues(alpha: 0.9);
 
     return MainTabNotifier(
       changeTab: _onItemTapped,
       child: Scaffold(
         key: MainShell.scaffoldKey,
         drawer: buildAppDrawer(context),
-        body: IndexedStack(index: _selectedIndex, children: _pages),
+        body: _getPage(_selectedIndex),
+        extendBody: true,
         bottomNavigationBar: Container(
+          margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
           decoration: BoxDecoration(
             color: navBg,
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12, offset: const Offset(0, -2),
+                color: kPrimary.withValues(alpha: isDark ? 0.15 : 0.08),
+                blurRadius: 24, offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _NavItem(icon: Icons.home_rounded,        label: 'Beranda', selected: _selectedIndex == 0, onTap: () => _onItemTapped(0)),
-                  _NavItem(icon: Icons.camera_alt_rounded,  label: 'Kamera',  selected: _selectedIndex == 1, onTap: () => _onItemTapped(1)),
-                  _NavItem(icon: Icons.photo_library_rounded, label: 'Galeri', selected: _selectedIndex == 2, onTap: () => _onItemTapped(2)),
-                  _NavItem(icon: Icons.person_rounded,      label: 'Profil',  selected: _selectedIndex == 3, onTap: () => _onItemTapped(3)),
-                ],
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _NavItem(icon: Icons.home_rounded,        label: 'Beranda', selected: _selectedIndex == 0, onTap: () => _onItemTapped(0)),
+                      _NavItem(icon: Icons.camera_alt_rounded,  label: 'Kamera',  selected: _selectedIndex == 1, onTap: () => _onItemTapped(1)),
+                      _NavItem(icon: Icons.photo_library_rounded, label: 'Galeri', selected: _selectedIndex == 2, onTap: () => _onItemTapped(2)),
+                      _NavItem(icon: Icons.person_rounded,      label: 'Profil',  selected: _selectedIndex == 3, onTap: () => _onItemTapped(3)),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -346,21 +401,22 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? kPrimary.withValues(alpha: 0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: selected ? kPrimary : Colors.grey.shade400, size: 22),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(label, style: TextStyle(
-              fontSize: 9,
-              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
               color: selected ? kPrimary : Colors.grey.shade400,
             )),
           ],

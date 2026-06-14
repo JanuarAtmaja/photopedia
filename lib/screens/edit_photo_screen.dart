@@ -1,12 +1,51 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import '../main.dart';
 import 'camera_screen.dart' show kAppFilters, CameraFilter;
 import 'preview_screen.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ISOLATE FILTER — runs image processing off the main thread
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FilterRequest {
+  final Uint8List raw;
+  final String filterId;
+  final int brightness;
+  const _FilterRequest({required this.raw, required this.filterId, required this.brightness});
+}
+
+/// Top-level function for compute() isolate.
+Uint8List _runFilter(_FilterRequest req) {
+  img.Image? image = img.decodeImage(req.raw);
+  if (image == null) return req.raw;
+
+  final filter = kAppFilters.firstWhere(
+    (f) => f.id == req.filterId,
+    orElse: () => kAppFilters.first,
+  );
+  if (filter.applyToImage != null) image = filter.applyToImage!(image);
+  if (req.brightness != 0) {
+    final out = img.Image(width: image.width, height: image.height);
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final px = image.getPixel(x, y);
+        out.setPixelRgba(x, y,
+          (px.r.toInt() + req.brightness).clamp(0, 255),
+          (px.g.toInt() + req.brightness).clamp(0, 255),
+          (px.b.toInt() + req.brightness).clamp(0, 255),
+          px.a.toInt());
+      }
+    }
+    image = out;
+  }
+  return Uint8List.fromList(img.encodeJpg(image, quality: 92));
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // OVERLAY ITEM
@@ -169,27 +208,13 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     if (mounted) setState(() => _previewBytes[_activeIndex] = preview);
   }
 
+  /// Process filter in an isolate to avoid blocking the UI thread.
   static Future<Uint8List> _computeFilter(
     Uint8List raw, CameraFilter filter, int brightness,
   ) async {
-    img.Image? image = img.decodeImage(raw);
-    if (image == null) return raw;
-    if (filter.applyToImage != null) image = filter.applyToImage!(image);
-    if (brightness != 0) {
-      final out = img.Image(width: image.width, height: image.height);
-      for (int y = 0; y < image.height; y++) {
-        for (int x = 0; x < image.width; x++) {
-          final px = image.getPixel(x, y);
-          out.setPixelRgba(x, y,
-            (px.r.toInt() + brightness).clamp(0, 255),
-            (px.g.toInt() + brightness).clamp(0, 255),
-            (px.b.toInt() + brightness).clamp(0, 255),
-            px.a.toInt());
-        }
-      }
-      image = out;
-    }
-    return Uint8List.fromList(img.encodeJpg(image, quality: 92));
+    return compute(_runFilter, _FilterRequest(
+      raw: raw, filterId: filter.id, brightness: brightness,
+    ));
   }
 
   // ── FIX Bug 1: hitung Rect gambar aktual di dalam canvas (BoxFit.contain) ──
@@ -468,7 +493,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
                 )
               : IconButton(
                   icon: const Icon(Icons.check_circle_rounded,
-                      color: Color(0xFF5B62B3)),
+                      color: kPrimary),
                   tooltip: 'Selesai edit, pilih frame',
                   onPressed: _saveAndNext,
                 ),
@@ -519,7 +544,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: isActive ? const Color(0xFF5B62B3) : Colors.white24,
+                  color: isActive ? kPrimary : Colors.white24,
                   width: isActive ? 2.5 : 1,
                 ),
               ),
@@ -543,7 +568,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
                       child: Container(
                         width: 16, height: 16,
                         decoration: const BoxDecoration(
-                          color: Color(0xFF5B62B3),
+                          color: kPrimary,
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -569,7 +594,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
     final bytes = _previewBytes[_activeIndex];
     if (_isLoading[_activeIndex]) {
       return const Center(
-          child: CircularProgressIndicator(color: Color(0xFF5B62B3)));
+          child: CircularProgressIndicator(color: kPrimary));
     }
     if (bytes == null) {
       return const Center(
@@ -636,7 +661,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF5B62B3), width: 1),
+        border: Border.all(color: kPrimary, width: 1),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -655,9 +680,9 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
               if (item.type == 'text')
                 TextButton.icon(
                   onPressed: () => _showAddTextDialog(editing: item),
-                  icon: const Icon(Icons.edit, size: 14, color: Color(0xFF5B62B3)),
+                  icon: const Icon(Icons.edit, size: 14, color: kPrimary),
                   label: const Text('Edit',
-                      style: TextStyle(color: Color(0xFF5B62B3), fontSize: 12)),
+                      style: TextStyle(color: kPrimary, fontSize: 12)),
                   style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 8)),
                 ),
@@ -681,7 +706,7 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
                     trackHeight: 2,
                     thumbShape: RoundSliderThumbShape(enabledThumbRadius: 7),
                     overlayShape: RoundSliderOverlayShape(overlayRadius: 14),
-                    activeTrackColor: Color(0xFF5B62B3),
+                    activeTrackColor: kPrimary,
                     inactiveTrackColor: Colors.white24,
                     thumbColor: Colors.white,
                   ),
@@ -760,14 +785,14 @@ class _EditPhotoScreenState extends State<EditPhotoScreen> {
             child: Slider(
               value: _brightnessMap[_activeIndex] ?? 0,
               min: -100, max: 100, divisions: 200,
-              activeColor: const Color(0xFF5B62B3),
+              activeColor: kPrimary,
               inactiveColor: Colors.white24,
               onChanged: (v) => setState(() => _brightnessMap[_activeIndex] = v),
               onChangeEnd: (_) => _applyFilterToActive(),
             ),
           ),
           const Icon(Icons.brightness_high,
-              color: Color(0xFF5B62B3), size: 20),
+              color: kPrimary, size: 20),
         ],
       ),
     );
@@ -891,7 +916,7 @@ class _DraggableOverlayWrapperState extends State<_DraggableOverlayWrapper> {
               decoration: BoxDecoration(
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF5B62B3)
+                      ? kPrimary
                       : Colors.white.withValues(alpha: 0.3),
                   width: isSelected ? 2 : 1,
                 ),
@@ -932,7 +957,7 @@ class _DraggableOverlayWrapperState extends State<_DraggableOverlayWrapper> {
                     child: Container(
                       width: 22, height: 22,
                       decoration: const BoxDecoration(
-                          color: Color(0xFF5B62B3), shape: BoxShape.circle),
+                          color: kPrimary, shape: BoxShape.circle),
                       child: const Icon(Icons.edit, color: Colors.white, size: 13),
                     ),
                   ),
@@ -960,7 +985,7 @@ class _ToolbarBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? const Color(0xFF5B62B3);
+    final c = color ?? kPrimary;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -1019,7 +1044,7 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
   static const _fontFamilies = ['Default', 'Serif', 'Monospace', 'Cursive', 'Fantasy'];
   static const _textColors = [
     Colors.white, Colors.black, Colors.yellow, Colors.red,
-    Colors.cyan, Colors.green, Color(0xFFFF69B4), Color(0xFF5B62B3),
+    Colors.cyan, Colors.green, Color(0xFFFF69B4), kPrimary,
   ];
 
   @override
@@ -1119,7 +1144,7 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
                         color: c,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSel ? const Color(0xFF5B62B3) : Colors.grey.shade300,
+                          color: isSel ? kPrimary : Colors.grey.shade300,
                           width: isSel ? 3 : 1,
                         ),
                       ),
@@ -1145,14 +1170,14 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSel ? const Color(0xFF5B62B3) : const Color(0xFFEEEDF8),
+                        color: isSel ? kPrimary : const Color(0xFFEEEDF8),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         font,
                         style: TextStyle(
                           fontFamily: font == 'Default' ? null : font,
-                          color: isSel ? Colors.white : const Color(0xFF5B62B3),
+                          color: isSel ? Colors.white : kPrimary,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1168,7 +1193,7 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
             Slider(
               value: _size,
               min: 14, max: 64, divisions: 25,
-              activeColor: const Color(0xFF5B62B3),
+              activeColor: kPrimary,
               label: _size.toInt().toString(),
               onChanged: (v) => setState(() => _size = v),
             ),
@@ -1177,7 +1202,7 @@ class _TextOverlaySheetState extends State<_TextOverlaySheet> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5B62B3)),
+                    backgroundColor: kPrimary),
                 onPressed: () {
                   final t = _ctrl.text.trim();
                   if (t.isEmpty) return;

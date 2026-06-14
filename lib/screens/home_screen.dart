@@ -11,9 +11,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = AppStateScope.of(context);
     final isDark = ThemeModeScope.of(context);
-    final cardBg = isDark ? kSurfaceDark : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF2D2D2D);
-    final subColor = isDark ? Colors.white60 : Colors.grey;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final subColor = isDark ? Colors.white60 : Colors.grey.shade600;
 
     return Scaffold(
       appBar: AppBar(
@@ -24,8 +23,9 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       body: SafeArea(
+        bottom: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
           child: ListenableBuilder(
             listenable: state,
             builder: (context, _) {
@@ -36,36 +36,52 @@ class HomeScreen extends StatelessWidget {
                   if (state.photos.isEmpty)
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(28),
                       decoration: BoxDecoration(
-                        color: cardBg,
-                        borderRadius: BorderRadius.circular(20),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft, end: Alignment.bottomRight,
+                          colors: isDark
+                            ? [kSurfaceDark, const Color(0xFF252542)]
+                            : [Colors.white, const Color(0xFFF0EEFF)],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
                         boxShadow: [
-                          BoxShadow(color: const Color(0xFF5B62B3).withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 4)),
+                          BoxShadow(
+                            color: kPrimary.withValues(alpha: isDark ? 0.15 : 0.08),
+                            blurRadius: 24, offset: const Offset(0, 8),
+                          ),
                         ],
                       ),
                       child: Column(
                         children: [
                           Container(
                             width: 80, height: 80,
-                            decoration: BoxDecoration(color: const Color(0xFFE8E4F5), borderRadius: BorderRadius.circular(16)),
-                            child: const Icon(Icons.camera_enhance_rounded, size: 40, color: Color(0xFF5B62B3)),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text('PHOTOPEDIA',
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF5B62B3), letterSpacing: 1.2)),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Photobooth seru yang bikin momen kamu jadi lebih hidup dan estetik. Akses kamera dan galeri dengan cepat.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 13, color: subColor, height: 1.5),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [kPrimary.withValues(alpha: 0.15), kAccent.withValues(alpha: 0.10)],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: const Icon(Icons.camera_enhance_rounded, size: 36, color: kPrimary),
                           ),
                           const SizedBox(height: 20),
+                          const Text('PHOTOPEDIA',
+                            style: TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.w800,
+                              color: kPrimary, letterSpacing: 1.5,
+                            )),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Photobooth seru yang bikin momen kamu\njadi lebih hidup dan estetik.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 14, color: subColor, height: 1.6),
+                          ),
+                          const SizedBox(height: 24),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               onPressed: () => _navigateToTab(context, 1),
-                              icon: const Icon(Icons.camera_alt_rounded),
+                              icon: const Icon(Icons.camera_alt_rounded, size: 20),
                               label: const Text('Mulai Ambil Foto'),
                             ),
                           ),
@@ -75,10 +91,10 @@ class HomeScreen extends StatelessWidget {
                             child: OutlinedButton(
                               onPressed: () => _navigateToTab(context, 2),
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFF5B62B3)),
-                                foregroundColor: const Color(0xFF5B62B3),
+                                side: const BorderSide(color: kPrimary, width: 1.5),
+                                foregroundColor: kPrimary,
                                 padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               ),
                               child: const Text('Lihat Galeri'),
                             ),
@@ -92,10 +108,12 @@ class HomeScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Foto Terbaru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
+                        Text('Foto Terbaru', style: TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.w700, color: textColor)),
                         TextButton(
                           onPressed: () => _navigateToTab(context, 2),
-                          child: const Text('Lihat Semua', style: TextStyle(color: Color(0xFF5B62B3))),
+                          child: const Text('Lihat Semua',
+                            style: TextStyle(color: kPrimary, fontWeight: FontWeight.w500)),
                         ),
                       ],
                     ),
@@ -130,4 +148,3 @@ class HomeScreen extends StatelessWidget {
     notifier?.changeTab(index);
   }
 }
-

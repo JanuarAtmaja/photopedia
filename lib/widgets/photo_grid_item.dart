@@ -13,15 +13,16 @@ class PhotoGridItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         child: Stack(
           fit: StackFit.expand,
           children: [
             Image.file(
               File(photo.path),
               fit: BoxFit.cover,
+              cacheWidth: 300,
               errorBuilder: (_, __, ___) => Container(
-                color: const Color(0xFFE8E4F5),
+                color: const Color(0xFFF0EEFF),
                 child: const Icon(Icons.photo, color: Color(0xFF8E93CC)),
               ),
             ),
@@ -30,13 +31,13 @@ class PhotoGridItem extends StatelessWidget {
                 top: 4,
                 right: 4,
                 child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: const BoxDecoration(
-                    color: Colors.black38,
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.4),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.favorite,
-                      color: Colors.pinkAccent, size: 12),
+                      color: Colors.pinkAccent, size: 13),
                 ),
               ),
           ],

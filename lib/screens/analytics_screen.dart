@@ -17,8 +17,6 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   UserStats? _stats;
   bool _isLoading = true;
 
-  static const _primary = Color(0xFF5B62B3);
-
   @override
   void initState() {
     super.initState();
@@ -27,7 +25,6 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
   Future<void> _loadStats() async {
     setState(() => _isLoading = true);
-    // Pastikan service terinisialisasi sebelum ambil data
     await AnalyticsService.instance.init();
     final stats = await AnalyticsService.instance.getStats();
     if (mounted) setState(() { _stats = stats; _isLoading = false; });
@@ -37,6 +34,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Reset Statistik?'),
         content: const Text('Semua data aktivitas akan dihapus permanen.'),
         actions: [
@@ -58,14 +56,15 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeModeScope.of(context);
-    final bg = isDark ? kBackgroundDark : const Color(0xFFEDE2E0);
+    final bg = isDark ? kBackgroundDark : kBackground;
+    final textColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+
     return Scaffold(
       backgroundColor: bg,
       drawer: buildAppDrawer(context, currentRoute: 'analytics'),
       appBar: AppBar(
         backgroundColor: bg,
-        title: const Text('Analitik Pengguna',
-            style: TextStyle(color: kPrimary, fontWeight: FontWeight.bold)),
+        title: const Text('Analitik'),
         leading: Builder(
           builder: (ctx) => IconButton(
             icon: const Icon(Icons.menu_rounded, color: kPrimary),
@@ -85,111 +84,113 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                 .popUntil((route) => route.isFirst),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+            icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
             tooltip: 'Reset statistik',
             onPressed: _confirmReset,
           ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: kPrimary))
           : _stats == null
               ? const Center(child: Text('Gagal memuat data.'))
               : RefreshIndicator(
+                  color: kPrimary,
                   onRefresh: _loadStats,
                   child: SingleChildScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Ringkasan Aktivitas',
+                        Text('Ringkasan Aktivitas',
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF2D2D2D),
+                            fontSize: 17, fontWeight: FontWeight.w700,
+                            color: textColor,
                           ),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 16),
                         GridView.count(
                           crossAxisCount: 2,
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio: 1.6,
+                          childAspectRatio: 1.5,
                           children: [
                             _StatCard(
                               label: 'Foto Diambil',
                               value: _stats!.totalPhotosTaken,
                               icon: Icons.camera_alt_rounded,
-                              color: _primary, isDark: isDark,
+                              color: kPrimary, isDark: isDark,
                             ),
                             _StatCard(
                               label: 'Foto Diklik',
                               value: _stats!.totalPhotosClicked,
                               icon: Icons.touch_app_rounded,
-                              color: Colors.teal, isDark: isDark,
+                              color: const Color(0xFF26A69A), isDark: isDark,
                             ),
                             _StatCard(
                               label: 'Foto Dikirim',
                               value: _stats!.totalPhotosSent,
                               icon: Icons.send_rounded,
-                              color: Colors.green, isDark: isDark,
+                              color: const Color(0xFF66BB6A), isDark: isDark,
                             ),
                             _StatCard(
                               label: 'Foto Dihapus',
                               value: _stats!.totalPhotosDeleted,
                               icon: Icons.delete_rounded,
-                              color: Colors.red, isDark: isDark,
+                              color: const Color(0xFFEF5350), isDark: isDark,
                             ),
                           ],
                         ),
 
                         const SizedBox(height: 28),
 
-                        // FIX 7: Log aktivitas — tampilkan dengan benar
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Log Aktivitas Terbaru',
+                            Text('Log Aktivitas',
                               style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
+                                fontSize: 17, fontWeight: FontWeight.w700,
+                                color: textColor,
+                              ),
                             ),
-                            Text(
-                              '${_stats!.recentLogs.length} entri',
-                              style: const TextStyle(
-                                  color: Colors.grey, fontSize: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: kPrimary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${_stats!.recentLogs.length} entri',
+                                style: const TextStyle(color: kPrimary, fontSize: 12, fontWeight: FontWeight.w500),
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
 
-                        // FIX 7: Render log dalam Container yang punya ukuran
-                        // (tidak seperti sebelumnya yang tidak dirender karena constraint kosong)
                         _stats!.recentLogs.isEmpty
                             ? Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.all(32),
+                                padding: const EdgeInsets.all(36),
                                 decoration: BoxDecoration(
                                   color: isDark ? kSurfaceDark : Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Column(
                                   children: [
                                     Icon(Icons.history_rounded,
                                         size: 48, color: Colors.grey.shade300),
-                                    const SizedBox(height: 12),
-                                    const Text('Belum ada aktivitas tercatat.',
-                                        style: TextStyle(color: Colors.grey)),
-                                    const SizedBox(height: 4),
-                                    const Text(
+                                    const SizedBox(height: 14),
+                                    Text('Belum ada aktivitas tercatat.',
+                                      style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                                    const SizedBox(height: 6),
+                                    Text(
                                       'Aktivitas akan muncul setelah kamu\nmengambil, mengedit, atau mengirim foto.',
                                       textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          color: Colors.grey, fontSize: 12),
+                                      style: TextStyle(color: Colors.grey.shade400, fontSize: 12, height: 1.5),
                                     ),
                                   ],
                                 ),
@@ -197,7 +198,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                             : Container(
                                 decoration: BoxDecoration(
                                   color: isDark ? kSurfaceDark : Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                                 clipBehavior: Clip.hardEdge,
                                 child: Column(
@@ -205,9 +206,10 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                                     for (int i = 0;
                                         i < _stats!.recentLogs.length;
                                         i++) ...[
-                                      _LogTile(log: _stats!.recentLogs[i]),
+                                      _LogTile(log: _stats!.recentLogs[i], isDark: isDark),
                                       if (i < _stats!.recentLogs.length - 1)
-                                        const Divider(height: 1, indent: 16),
+                                        Divider(height: 1, indent: 56,
+                                          color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade100),
                                     ],
                                   ],
                                 ),
@@ -244,41 +246,44 @@ class _StatCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? kSurfaceDark : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: color.withValues(alpha: 0.12),
-              blurRadius: 12,
+              color: color.withValues(alpha: 0.08),
+              blurRadius: 16,
               offset: const Offset(0, 4)),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(icon, color: color, size: 22),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                value.toString(),
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  value.toString(),
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                  ),
                 ),
-              ),
-              Text(label,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
-            ],
+                const SizedBox(height: 2),
+                Text(label,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+              ],
+            ),
           ),
         ],
       ),
@@ -288,7 +293,8 @@ class _StatCard extends StatelessWidget {
 
 class _LogTile extends StatelessWidget {
   final ActivityLog log;
-  const _LogTile({required this.log});
+  final bool isDark;
+  const _LogTile({required this.log, this.isDark = false});
 
   IconData _icon() {
     switch (log.action) {
@@ -302,10 +308,10 @@ class _LogTile extends StatelessWidget {
 
   Color _color() {
     switch (log.action) {
-      case 'photo_taken': return const Color(0xFF5B62B3);
-      case 'photo_clicked': return Colors.teal;
-      case 'photo_sent': return Colors.green;
-      case 'photo_deleted': return Colors.red;
+      case 'photo_taken': return kPrimary;
+      case 'photo_clicked': return const Color(0xFF26A69A);
+      case 'photo_sent': return const Color(0xFF66BB6A);
+      case 'photo_deleted': return const Color(0xFFEF5350);
       default: return Colors.grey;
     }
   }
@@ -325,20 +331,27 @@ class _LogTile extends StatelessWidget {
     final timeStr = DateFormat('dd MMM yyyy, HH:mm:ss')
         .format(log.timestamp.toLocal());
     return ListTile(
-      dense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: CircleAvatar(
-        radius: 16,
-        backgroundColor: _color().withValues(alpha: 0.12),
-        child: Icon(_icon(), color: _color(), size: 16),
+        radius: 18,
+        backgroundColor: _color().withValues(alpha: 0.10),
+        child: Icon(_icon(), color: _color(), size: 18),
       ),
       title: Text(_label(),
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
       subtitle: Text(timeStr,
-          style: const TextStyle(fontSize: 11, color: Colors.grey)),
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
       trailing: log.photoId != null
-          ? Text(
-              '#${log.photoId!.substring(log.photoId!.length > 6 ? log.photoId!.length - 6 : 0)}',
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '#${log.photoId!.substring(log.photoId!.length > 6 ? log.photoId!.length - 6 : 0)}',
+                style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w500),
+              ),
             )
           : null,
     );

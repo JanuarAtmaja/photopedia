@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import '../models/photo_state.dart';
+import '../main.dart';
 import '../screens/edit_photo_screen.dart';
 
 /// LightboxViewer menampilkan foto dalam ukuran penuh layar.
@@ -106,7 +107,7 @@ class _LightboxViewerState extends State<LightboxViewer> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Foto disimpan ke: $fileName'),
-            backgroundColor: const Color(0xFF5B62B3),
+            backgroundColor: kPrimary,
             behavior: SnackBarBehavior.floating,
             action: SnackBarAction(
               label: 'OK',
@@ -316,7 +317,7 @@ class _LightboxViewerState extends State<LightboxViewer> {
                                       border: isActive
                                           ? Border.all(
                                               color:
-                                                  const Color(0xFF5B62B3),
+                                                  kPrimary,
                                               width: 2.5)
                                           : null,
                                     ),

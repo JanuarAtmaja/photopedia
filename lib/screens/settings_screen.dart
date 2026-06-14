@@ -26,14 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       appBar: AppBar(
         backgroundColor: bgColor,
         elevation: 0,
-        title: const Text(
-          'Pengaturan',
-          style: TextStyle(
-            color: kPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+        title: const Text('Pengaturan'),
         leading: Builder(
           builder: (ctx) => IconButton(
             icon: const Icon(Icons.menu_rounded, color: kPrimary),
@@ -50,12 +43,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
         children: [
           // ── Tampilan ──────────────────────────────────────────────
           _buildSection(
             title: 'Tampilan',
             cardColor: cardColor,
+            isDark: isDark,
             children: [
               _buildSwitchTile(
                 icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
@@ -72,6 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSection(
             title: 'Profil',
             cardColor: cardColor,
+            isDark: isDark,
             children: [
               _buildTile(
                 icon: Icons.person_outline_rounded,
@@ -93,6 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSection(
             title: 'Kamera & Foto',
             cardColor: cardColor,
+            isDark: isDark,
             children: [
               _buildDropdownTile(
                 icon: Icons.high_quality_rounded,
@@ -116,6 +112,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSection(
             title: 'Notifikasi',
             cardColor: cardColor,
+            isDark: isDark,
             children: [
               _buildSwitchTile(
                 icon: Icons.notifications_outlined,
@@ -132,6 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSection(
             title: 'Data',
             cardColor: cardColor,
+            isDark: isDark,
             children: [
               _buildTile(
                 icon: Icons.delete_outline_rounded,
@@ -148,6 +146,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSection(
             title: 'Tentang',
             cardColor: cardColor,
+            isDark: isDark,
             children: [
               _buildTile(
                 icon: Icons.info_outline_rounded,
@@ -173,26 +172,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required List<Widget> children,
     required Color cardColor,
+    required bool isDark,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          padding: const EdgeInsets.only(left: 4, bottom: 10),
           child: Text(
             title.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: kPrimary,
-              letterSpacing: 1.1,
+              fontWeight: FontWeight.w700,
+              color: kPrimary.withValues(alpha: 0.7),
+              letterSpacing: 1.2,
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
             color: cardColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
           ),
           child: Column(
             children: children.map((w) {
@@ -205,7 +205,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Divider(
                       height: 1,
                       indent: 52,
-                      color: Colors.grey.shade200,
+                      color: isDark ? Colors.white.withValues(alpha: 0.06)
+                                    : Colors.grey.shade100,
                     ),
                 ],
               );
@@ -227,10 +228,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       leading: Icon(icon, color: iconColor ?? kPrimary, size: 22),
       title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
       subtitle: subtitle != null
-          ? Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey))
+          ? Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade500))
           : null,
       trailing: onTap != null
-          ? const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20)
+          ? Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20)
           : null,
       onTap: onTap,
       dense: true,
@@ -249,13 +250,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       leading: Icon(icon, color: kPrimary, size: 22),
       title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
       subtitle: subtitle != null
-          ? Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey))
+          ? Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade500))
           : null,
       trailing: Switch.adaptive(
         value: value,
         onChanged: onChanged,
         activeThumbColor: kPrimary,
-        activeTrackColor: kPrimary.withValues(alpha: 0.5),
+        activeTrackColor: kPrimary.withValues(alpha: 0.4),
       ),
       dense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -275,7 +276,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       trailing: DropdownButton<String>(
         value: value,
         underline: const SizedBox.shrink(),
-        style: const TextStyle(fontSize: 13, color: kPrimary),
+        style: const TextStyle(fontSize: 13, color: kPrimary, fontWeight: FontWeight.w500),
         items: items
             .map((e) => DropdownMenuItem(value: e, child: Text(e)))
             .toList(),
@@ -291,10 +292,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Ubah Nama'),
         content: TextField(
           controller: ctrl,
-          decoration: const InputDecoration(hintText: 'Nama pengguna'),
+          decoration: InputDecoration(
+            hintText: 'Nama pengguna',
+            filled: true,
+            fillColor: kPrimary.withValues(alpha: 0.05),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
           autofocus: true,
         ),
         actions: [
@@ -303,7 +313,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
             onPressed: () => Navigator.pop(context),
             child: const Text('Simpan'),
           ),
@@ -316,6 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Hapus Semua Foto?'),
         content: const Text('Tindakan ini tidak bisa dibatalkan.'),
         actions: [
@@ -329,9 +339,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.pop(context);
               AppStateScope.of(context).clearAll();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Semua foto dihapus.'),
+                SnackBar(
+                  content: const Text('Semua foto dihapus.'),
                   backgroundColor: kPrimary,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               );
             },

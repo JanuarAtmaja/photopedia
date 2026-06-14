@@ -139,15 +139,25 @@ class _EmailScreenState extends State<EmailScreen> {
       context: context,
       backgroundColor: isDark ? kSurfaceDark : Colors.white,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (sheetCtx) => Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             const Text('Pilih Foto Lampiran',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             const SizedBox(height: 14),
             SizedBox(
               height: 110,
@@ -166,15 +176,15 @@ class _EmailScreenState extends State<EmailScreen> {
                       margin: const EdgeInsets.only(right: 10),
                       width: 95,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                         border: isSelected
-                            ? Border.all(
-                                color: const Color(0xFF5B62B3), width: 3)
+                            ? Border.all(color: kPrimary, width: 3)
                             : null,
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(File(photo.path), fit: BoxFit.cover),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(File(photo.path), fit: BoxFit.cover,
+                          cacheWidth: 200),
                       ),
                     ),
                   );
@@ -190,15 +200,18 @@ class _EmailScreenState extends State<EmailScreen> {
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor:
-          isError ? Colors.red.shade600 : const Color(0xFF5B62B3),
+      backgroundColor: isError ? Colors.red.shade600 : kPrimary,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = ThemeModeScope.of(context);
-    final bg = isDark ? kBackgroundDark : const Color(0xFFEDE2E0);
+    final bg = isDark ? kBackgroundDark : kBackground;
+    final fieldBg = isDark ? kSurfaceDark : Colors.white;
+
     return Scaffold(
       backgroundColor: bg,
       drawer: buildAppDrawer(context, currentRoute: 'email'),
@@ -221,7 +234,7 @@ class _EmailScreenState extends State<EmailScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         child: Column(
           children: [
             _buildTextField(
@@ -229,30 +242,31 @@ class _EmailScreenState extends State<EmailScreen> {
               label: 'Nama Penerima',
               hint: 'Budi Santoso',
               icon: Icons.person_outline_rounded,
-              isDark: isDark,
+              fieldBg: fieldBg,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _buildTextField(
               controller: _toController,
               label: 'Kepada',
               hint: 'nama@gmail.com',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
-              isDark: isDark,
+              fieldBg: fieldBg,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             _buildTextField(
               controller: _subjectController,
               label: 'Subjek',
               hint: 'Tulis subjek...',
               icon: Icons.subject_rounded,
-              isDark: isDark,
+              fieldBg: fieldBg,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
-                  color: isDark ? kSurfaceDark : Colors.white,
-                  borderRadius: BorderRadius.circular(12)),
+                color: fieldBg,
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: TextField(
                 controller: _bodyController,
                 maxLines: 6,
@@ -266,16 +280,22 @@ class _EmailScreenState extends State<EmailScreen> {
             GestureDetector(
               onTap: _pickPhoto,
               child: Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: isDark ? kSurfaceDark : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFCFD1E8)),
+                  color: fieldBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _attachedPhotoPath != null ? kPrimary : (isDark ? Colors.white12 : Colors.grey.shade200),
+                    width: _attachedPhotoPath != null ? 1.5 : 1,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.attach_file_rounded,
-                        color: Color(0xFF5B62B3)),
+                    Icon(
+                      _attachedPhotoPath != null ? Icons.check_circle_rounded : Icons.attach_file_rounded,
+                      color: _attachedPhotoPath != null ? kPrimary : Colors.grey,
+                      size: 22,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -283,6 +303,10 @@ class _EmailScreenState extends State<EmailScreen> {
                             ? 'Foto Terlampir ✓'
                             : 'Pilih foto lampiran',
                         overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: _attachedPhotoPath != null ? kPrimary : null,
+                          fontWeight: _attachedPhotoPath != null ? FontWeight.w500 : null,
+                        ),
                       ),
                     ),
                     if (_attachedPhotoPath != null)
@@ -299,9 +323,16 @@ class _EmailScreenState extends State<EmailScreen> {
             const SizedBox(height: 28),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
                 onPressed: _isSending ? null : _sendEmail,
-                child: Text(_isSending ? 'Mengirim...' : 'Kirim Email'),
+                icon: _isSending
+                  ? const SizedBox(width: 18, height: 18,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Icon(Icons.send_rounded, size: 18),
+                label: Text(_isSending ? 'Mengirim...' : 'Kirim Email'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
               ),
             ),
           ],
@@ -316,12 +347,13 @@ class _EmailScreenState extends State<EmailScreen> {
     required String hint,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
-    bool isDark = false,
+    required Color fieldBg,
   }) {
     return Container(
       decoration: BoxDecoration(
-          color: isDark ? kSurfaceDark : Colors.white,
-          borderRadius: BorderRadius.circular(12)),
+        color: fieldBg,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
@@ -329,7 +361,7 @@ class _EmailScreenState extends State<EmailScreen> {
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          prefixIcon: Icon(icon, color: const Color(0xFF5B62B3), size: 20),
+          prefixIcon: Icon(icon, color: kPrimary, size: 20),
           border: InputBorder.none,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -357,37 +389,58 @@ class _StatusModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 36),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            success ? Icons.check_circle_rounded : Icons.cancel_rounded,
-            size: 70,
-            color: success ? Colors.green : Colors.red,
+          Container(
+            width: 72, height: 72,
+            decoration: BoxDecoration(
+              color: (success ? Colors.green : Colors.red).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              success ? Icons.check_circle_rounded : Icons.cancel_rounded,
+              size: 40,
+              color: success ? Colors.green : Colors.red,
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(success ? 'Berhasil!' : 'Gagal',
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Text(
             success
-                ? 'Aplikasi email dibuka. Kirim dari mail app kamu ke $toEmail.'
+                ? 'Email berhasil dikirim ke $toEmail.'
                 : (errorMessage ?? 'Gagal mengirim.'),
             textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade600, height: 1.5),
           ),
           const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
-                  child: OutlinedButton(
-                      onPressed: onClose, child: const Text('Tutup'))),
+                child: OutlinedButton(
+                  onPressed: onClose,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    side: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  child: const Text('Tutup'),
+                ),
+              ),
               if (onRetry != null) ...[
                 const SizedBox(width: 12),
                 Expanded(
-                    child: ElevatedButton(
-                        onPressed: onRetry, child: const Text('Ulangi'))),
+                  child: ElevatedButton(
+                    onPressed: onRetry,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Ulangi'),
+                  ),
+                ),
               ],
             ],
           ),
